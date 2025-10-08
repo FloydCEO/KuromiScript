@@ -13,9 +13,9 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.abspath(".")
-    full_path = os.path.join(base_path, relative_path)
-    return full_path
+        # Fixed: Use argv[0] location instead of current directory
+        base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+    return os.path.join(base_path, relative_path)
 
 def run_kuromi_code(code, print_func=print, debug_mode=False, root=None, canvas=None):
     global image_references
@@ -107,14 +107,12 @@ def run_kuromi_code(code, print_func=print, debug_mode=False, root=None, canvas=
         # 📝 Show Text
         elif line.startswith("ShowText "):
             # Match pattern: ShowText (alignment) "text" x y OR ShowText "text" x y
-            # First try with alignment
             match = re.match(r'ShowText\s+\((\w+)\)\s+"([^"]+)"\s+(\d+)\s+(\d+)', line)
             if match:
                 alignment, text, x, y = match.groups()
                 x, y = int(x), int(y)
                 alignment = alignment.lower()
             else:
-                # Try without alignment (default to left)
                 match = re.match(r'ShowText\s+"([^"]+)"\s+(\d+)\s+(\d+)', line)
                 if match:
                     text, x, y = match.groups()
@@ -129,11 +127,11 @@ def run_kuromi_code(code, print_func=print, debug_mode=False, root=None, canvas=
             if alignment == "centered" or alignment == "center":
                 anchor = "center"
             elif alignment == "right":
-                anchor = "e"  # East = right aligned
+                anchor = "e"
             elif alignment == "left":
-                anchor = "w"  # West = left aligned
+                anchor = "w"
             else:
-                anchor = "w"  # Default to left
+                anchor = "w"
             
             if canvas:
                 try:
@@ -192,7 +190,6 @@ def run_kuromi_code(code, print_func=print, debug_mode=False, root=None, canvas=
                 x, y, radius = int(x), int(y), int(radius)
                 if canvas:
                     try:
-                        # Canvas draws ovals with bounding box
                         canvas.create_oval(x - radius, y - radius, 
                                          x + radius, y + radius, 
                                          fill=color, outline=color)
@@ -303,11 +300,10 @@ def run_kuromi_code(code, print_func=print, debug_mode=False, root=None, canvas=
         i += 1
 
     # Only run mainloop if we created the window and in debug mode
-    # Window stays open until "Kuromi <Close>" is called or manually closed
     if created_window and debug_mode:
         try:
             root.mainloop()
         except:
-            pass  # Window was closed by Kuromi <Close> command
+            pass
     
     return root, canvas

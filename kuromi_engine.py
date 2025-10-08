@@ -6,6 +6,7 @@ import subprocess
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import pygame
+import shutil
 from kuromi_interpreter import run_kuromi_code, resource_path
 
 # Initialize pygame mixer for startup sound
@@ -15,9 +16,8 @@ def show_splash_screen():
     """Show KuromiCore splash screen on engine startup."""
     splash = tk.Tk()
     splash.title("KuromiCore")
-    splash.overrideredirect(True)  # Remove window decorations
+    splash.overrideredirect(True)
     
-    # Center the splash screen
     width = 400
     height = 300
     screen_width = splash.winfo_screenwidth()
@@ -26,50 +26,41 @@ def show_splash_screen():
     y = (screen_height - height) // 2
     splash.geometry(f"{width}x{height}+{x}+{y}")
     
-    # Set icon for splash
     try:
         icon_path = resource_path("assets/icon.ico")
         splash.iconbitmap(icon_path)
     except:
         pass
     
-    # Splash content
     splash.configure(bg="#4B0082")
     
-    # KuromiCore title
     title_label = tk.Label(splash, text="KuromiCore", 
                           font=("Arial", 36, "bold"), 
                           fg="white", bg="#4B0082")
     title_label.pack(expand=True, pady=(80, 10))
     
-    # By Logan Whaley
     author_label = tk.Label(splash, text="by Logan Whaley", 
                            font=("Arial", 14), 
                            fg="#E0E0E0", bg="#4B0082")
     author_label.pack(pady=(0, 80))
     
-    # Loading text
     loading_label = tk.Label(splash, text="Loading...", 
                             font=("Arial", 10), 
                             fg="#B0B0B0", bg="#4B0082")
     loading_label.pack(side=tk.BOTTOM, pady=20)
     
     splash.update()
-    
-    # Wait 2 seconds
     time.sleep(2)
     
-    # Play startup sound
     try:
         startup_sound = resource_path("assets/startup.wav")
         pygame.mixer.music.load(startup_sound)
         pygame.mixer.music.play()
     except:
-        pass  # Sound optional
+        pass
     
     splash.destroy()
 
-# Show splash screen before main engine
 show_splash_screen()
 
 # Create main engine window
@@ -78,10 +69,8 @@ root.title("KuromiCore by Logan Whaley")
 root.geometry("900x600")
 root.configure(bg="#1e1e1e")
 
-# CRITICAL: Set icon AFTER window is created and force update
 icon_path = resource_path("assets/icon.ico")
 try:
-    # Set icon multiple times to ensure it sticks
     root.iconbitmap(default=icon_path)
     root.iconbitmap(icon_path)
     root.update_idletasks()
@@ -108,7 +97,7 @@ output_box = tk.Text(root, height=10, bg="#111", fg="#00ffcc", relief="flat", fo
 output_box.pack(fill=tk.BOTH, padx=10, pady=(0,10), expand=True)
 
 def run_code():
-    """Run the KuromiScript code in debug mode with branding splash screen."""
+    """Run the KuromiScript code in debug mode."""
     output_box.delete("1.0", tk.END)
     code = editor.get("1.0", tk.END).strip()
     
@@ -118,17 +107,14 @@ def run_code():
     
     output_box.insert(tk.END, "[>] Starting KuromiCore Debug Window...\n")
     
-    # Create a debug output function
     def debug_print(message):
         output_box.insert(tk.END, f"{message}\n")
         output_box.see(tk.END)
     
-    # Create game window
     game_window = tk.Toplevel()
     game_window.title("KuromiCore Game")
     game_window.geometry("800x600")
     
-    # Set game window icon - force it to stick
     try:
         icon_path = resource_path("assets/icon.ico")
         game_window.iconbitmap(default=icon_path)
@@ -140,32 +126,26 @@ def run_code():
     canvas = tk.Canvas(game_window, width=800, height=600, bg="#4B0082")
     canvas.pack()
     
-    # Show branding splash screen
     debug_print("[*] Showing KuromiCore splash screen...")
     splash_text = canvas.create_text(400, 300, text="Made with KuromiCore", 
                                      fill="white", font=("Arial", 24, "bold"))
     game_window.update()
     
-    # Wait for splash
     root.after(2000, lambda: continue_game(game_window, canvas, splash_text, code, debug_print))
 
 def continue_game(game_window, canvas, splash_text, code, debug_print):
     """Continue game execution after splash screen."""
     try:
-        # Clear splash
         canvas.delete(splash_text)
         canvas.configure(bg="black")
         game_window.update()
         
         debug_print("[+] Running your game...\n")
-        
-        # Run user code
         run_kuromi_code(code, print_func=debug_print, debug_mode=True, 
                        root=game_window, canvas=canvas)
         
         debug_print("\n[OK] Game execution complete!")
     except tk.TclError:
-        # Window was closed
         debug_print("\n[X] Game window closed")
     except Exception as e:
         debug_print(f"\n[ERROR] Error during execution: {e}")
@@ -173,7 +153,7 @@ def continue_game(game_window, canvas, splash_text, code, debug_print):
         debug_print(traceback.format_exc())
 
 def build_to_exe():
-    """Build the current Kuromi game into a standalone EXE with branding splash screen."""
+    """Build the current Kuromi game into a standalone EXE with all fixes applied."""
     code = editor.get("1.0", tk.END).strip()
     
     if not code:
@@ -190,21 +170,24 @@ def build_to_exe():
     
     build_name = os.path.splitext(os.path.basename(build_num))[0]
 
-    # Generate a temporary .py game with splash screen and interpreter
     temp_dir = tempfile.mkdtemp()
     src_path = os.path.join(temp_dir, f"kuromi_game_{build_name}.py")
     
     # Read interpreter source code
     try:
-        interpreter_path = os.path.join(os.path.dirname(__file__), "kuromi_interpreter.py")
+        interpreter_path = resource_path("kuromi_interpreter.py")
         with open(interpreter_path, "r", encoding="utf-8") as f:
             interpreter_code = f.read()
     except FileNotFoundError:
-        output_box.insert(tk.END, f"\n[ERROR] kuromi_interpreter.py not found at {interpreter_path}\n")
-        output_box.see(tk.END)
-        return
+        try:
+            import kuromi_interpreter
+            import inspect
+            interpreter_code = inspect.getsource(kuromi_interpreter)
+        except Exception as e:
+            output_box.insert(tk.END, f"\n[ERROR] Could not load kuromi_interpreter: {e}\n")
+            output_box.see(tk.END)
+            return
     
-    # Escape the user code for embedding
     escaped_code = code.replace("\\", "\\\\").replace("'''", "\\'\\'\\'")
     
     # Generate standalone game with splash
@@ -215,12 +198,10 @@ import tkinter as tk
 import time
 
 if __name__ == "__main__":
-    # Create game window
     root = tk.Tk()
     root.title("KuromiCore Game")
     root.geometry("800x600")
     
-    # Set icon
     try:
         root.iconbitmap(resource_path("assets/icon.ico"))
     except:
@@ -229,17 +210,14 @@ if __name__ == "__main__":
     canvas = tk.Canvas(root, width=800, height=600, bg="#4B0082")
     canvas.pack()
     
-    # Show branding splash
     canvas.create_text(400, 300, text="Made with KuromiCore", 
                       fill="white", font=("Arial", 24, "bold"))
     root.update()
     time.sleep(2)
     
-    # Clear splash and run game
     canvas.delete("all")
     canvas.configure(bg="black")
     
-    # User's game code
     game_code = """{escaped_code}"""
     
     run_kuromi_code(game_code, debug_mode=True, root=root, canvas=canvas)
@@ -248,66 +226,135 @@ if __name__ == "__main__":
     with open(src_path, "w", encoding="utf-8") as f:
         f.write(py_code)
 
-    # Output folder for built EXE
-    builds_dir = os.path.join(os.getcwd(), "builds")
+    # Set builds directory to dist/builds
+    builds_dir = os.path.join(os.getcwd(), "dist", "builds")
     os.makedirs(builds_dir, exist_ok=True)
 
     output_box.insert(tk.END, f"[BUILD] Building KuromiCore Game: {build_name}...\n")
     output_box.see(tk.END)
 
-    # List of assets to bundle
+    # Use absolute paths for assets
+    assets_dir = os.path.abspath("assets")
     assets = [
-        os.path.join("assets", "icon.ico"),
-        os.path.join("assets", "splash_bg.png"),
-        os.path.join("assets", "startup.wav")
+        os.path.join(assets_dir, "icon.ico"),
+        os.path.join(assets_dir, "splash_bg.png"),
+        os.path.join(assets_dir, "startup.wav")
     ]
 
-    # Build command
     def build_thread():
+        spec_dir = os.path.join(temp_dir, "spec")
+        os.makedirs(spec_dir, exist_ok=True)
+        
         cmd = [
             sys.executable,
             "-m", "PyInstaller",
             "--onefile",
             "--noconsole",
             "--clean",
+            "--noconfirm",  # Added: Clean rebuilds
+            "--log-level", "WARN",
             "--name", f"KuromiCore_{build_name}",
             "--distpath", builds_dir,
-            "--icon", os.path.join("assets", "icon.ico")
+            "--workpath", os.path.join(temp_dir, "build"),
+            "--specpath", spec_dir
         ]
         
+        # Add hidden imports for dependencies
+        cmd.extend(["--hidden-import", "pygame"])
+        cmd.extend(["--hidden-import", "tkinter"])
+        
+        # Collect all pygame and tkinter dependencies (including DLLs)
+        cmd.extend(["--collect-all", "pygame"])
+        cmd.extend(["--collect-all", "tkinter"])
+        
+        # Add icon if exists
+        icon_file = os.path.join(assets_dir, "icon.ico")
+        if os.path.exists(icon_file):
+            cmd.extend(["--icon", icon_file])
+        
+        # Add assets with absolute paths
         separator = ";" if sys.platform.startswith("win") else ":"
         for asset in assets:
-            if os.path.exists(asset):
-                cmd.extend(["--add-data", f"{asset}{separator}assets"])
+            abs_asset = os.path.abspath(asset)
+            if os.path.exists(abs_asset):
+                cmd.extend(["--add-data", f"{abs_asset}{separator}assets"])
+                output_box.insert(tk.END, f"[+] Adding asset: {os.path.basename(abs_asset)}\n")
+                output_box.see(tk.END)
+                root.update()
         
         cmd.append(src_path)
         
         try:
-            output_box.insert(tk.END, "Building... This may take a minute...\n")
+            output_box.insert(tk.END, "\n[BUILD] Running PyInstaller...\n")
+            output_box.insert(tk.END, "[BUILD] This may take 1-2 minutes...\n\n")
             output_box.see(tk.END)
             root.update()
             
-            proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            proc = subprocess.run(cmd, capture_output=True, text=True)
             
-            exe_path = os.path.join(builds_dir, f'KuromiCore_{build_name}.exe')
+            # Check multiple possible locations for the EXE
+            dist_dir = builds_dir
+            exe_name = f"KuromiCore_{build_name}.exe"
+            exe_path = os.path.join(dist_dir, exe_name)
             
-            # Check if file actually exists
+            # Search for EXE in case it's in a subfolder
+            found_exe = None
             if os.path.exists(exe_path):
-                output_box.insert(tk.END, f"\n[OK] Build complete!\n")
-                output_box.insert(tk.END, f"[FILE] Location: {exe_path}\n")
-                output_box.insert(tk.END, f"[SIZE] File size: {os.path.getsize(exe_path) / 1024 / 1024:.2f} MB\n")
-                messagebox.showinfo("Build Success", f"Game built successfully!\n\n{exe_path}")
+                found_exe = exe_path
             else:
-                output_box.insert(tk.END, f"\n[ERROR] Build failed: EXE not found at expected location\n")
-                output_box.insert(tk.END, f"Expected: {exe_path}\n")
-                output_box.insert(tk.END, f"Build output:\n{proc.stdout}\n")
-                messagebox.showerror("Build Failed", "EXE was not created. Check output for details.")
+                for rootdir, dirs, files in os.walk(dist_dir):
+                    for f in files:
+                        if f.endswith(".exe") and build_name in f:
+                            found_exe = os.path.join(rootdir, f)
+                            break
+                    if found_exe:
+                        break
+            
+            # Also check default dist folder
+            if not found_exe:
+                default_exe = os.path.join("dist", exe_name)
+                if os.path.exists(default_exe):
+                    found_exe = default_exe
+            
+            if found_exe:
+                # Move to correct location if needed
+                if found_exe != exe_path:
+                    output_box.insert(tk.END, f"[!] Moving EXE to builds folder...\n")
+                    shutil.move(found_exe, exe_path)
                 
-        except subprocess.CalledProcessError as e:
-            output_box.insert(tk.END, f"\n[ERROR] Build failed:\n{e.stderr}\n")
-            messagebox.showerror("Build Failed", "Build failed! Check output for details.")
+                file_size = os.path.getsize(exe_path) / 1024 / 1024
+                output_box.insert(tk.END, f"\n[✓] BUILD SUCCESSFUL!\n")
+                output_box.insert(tk.END, f"[FILE] Location: {exe_path}\n")
+                output_box.insert(tk.END, f"[SIZE] {file_size:.2f} MB\n")
+                
+                # Copy assets folder next to EXE for debugging
+                final_assets = os.path.join(builds_dir, "assets")
+                if not os.path.exists(final_assets) and os.path.exists(assets_dir):
+                    try:
+                        shutil.copytree(assets_dir, final_assets)
+                        output_box.insert(tk.END, f"[+] Assets folder copied for debugging\n")
+                    except Exception as copy_err:
+                        output_box.insert(tk.END, f"[!] Could not copy assets: {copy_err}\n")
+                
+                messagebox.showinfo("Build Success", 
+                    f"Game built successfully!\n\nLocation: {exe_path}\nSize: {file_size:.2f} MB")
+            else:
+                output_box.insert(tk.END, f"\n[ERROR] Build failed - EXE not created\n")
+                output_box.insert(tk.END, f"Expected: {exe_path}\n")
+                
+                if proc.returncode != 0:
+                    output_box.insert(tk.END, f"\n[PyInstaller Errors]\n{proc.stderr}\n")
+                else:
+                    output_box.insert(tk.END, f"\n[PyInstaller Output]\n{proc.stdout}\n")
+                
+                messagebox.showerror("Build Failed", 
+                    "EXE was not created. Check the output log for details.")
+                
         except Exception as e:
-            output_box.insert(tk.END, f"\n[ERROR] Unexpected error: {e}\n")
+            output_box.insert(tk.END, f"\n[ERROR] Build exception: {e}\n")
+            import traceback
+            output_box.insert(tk.END, traceback.format_exc())
+            messagebox.showerror("Build Error", f"An error occurred during build:\n{e}")
         
         output_box.see(tk.END)
     
