@@ -1,250 +1,243 @@
-#kuromi_engine.py
-
 import os
 import sys
 import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import threading
 import pygame
-from kuromi_interpreter import run_kuromi_code, resource_path
 
-# Initialize pygame mixer for startup sound
+# Initialize pygame mixer for sounds
 pygame.mixer.init()
 
+# ============================================================
+#  HELPER: Safe import of Kuromi interpreter functions
+# ============================================================
+def get_kuromi_api():
+    """Lazy import to avoid circular import errors with PyInstaller."""
+    from kuromi_interpreter import run_kuromi_code, resource_path
+    return run_kuromi_code, resource_path
+
+
+# ============================================================
+#  SPLASH SCREEN
+# ============================================================
 def show_splash_screen():
-    """Show KuromiCore splash screen on engine startup."""
+    """Show KuromiCore splash screen."""
     splash = tk.Tk()
     splash.title("KuromiCore")
     splash.overrideredirect(True)
-    
-    width = 400
-    height = 300
+
+    width, height = 400, 300
     screen_width = splash.winfo_screenwidth()
     screen_height = splash.winfo_screenheight()
     x = (screen_width - width) // 2
     y = (screen_height - height) // 2
     splash.geometry(f"{width}x{height}+{x}+{y}")
-    
+    splash.configure(bg="#4B0082")
+
     try:
+        _, resource_path = get_kuromi_api()
         icon_path = resource_path("assets/icon.ico")
         splash.iconbitmap(icon_path)
-    except:
+    except Exception:
         pass
-    
-    splash.configure(bg="#4B0082")
-    
-    title_label = tk.Label(splash, text="KuromiCore", 
-                          font=("Arial", 36, "bold"), 
-                          fg="white", bg="#4B0082")
-    title_label.pack(expand=True, pady=(80, 10))
-    
-    author_label = tk.Label(splash, text="by Logan Whaley", 
-                           font=("Arial", 14), 
-                           fg="#E0E0E0", bg="#4B0082")
-    author_label.pack(pady=(0, 80))
-    
-    loading_label = tk.Label(splash, text="Loading...", 
-                            font=("Arial", 10), 
-                            fg="#B0B0B0", bg="#4B0082")
-    loading_label.pack(side=tk.BOTTOM, pady=20)
-    
+
+    tk.Label(
+        splash, text="KuromiCore", font=("Arial", 36, "bold"),
+        fg="white", bg="#4B0082"
+    ).pack(expand=True, pady=(80, 10))
+    tk.Label(
+        splash, text="by Logan Whaley",
+        font=("Arial", 14), fg="#E0E0E0", bg="#4B0082"
+    ).pack(pady=(0, 80))
+    tk.Label(
+        splash, text="Loading...", font=("Arial", 10),
+        fg="#B0B0B0", bg="#4B0082"
+    ).pack(side=tk.BOTTOM, pady=20)
+
     splash.update()
-    time.sleep(2)
-    
+    time.sleep(1.5)
+
     try:
+        _, resource_path = get_kuromi_api()
         startup_sound = resource_path("assets/startup.wav")
         pygame.mixer.music.load(startup_sound)
         pygame.mixer.music.play()
-    except:
+    except Exception:
         pass
-    
+
     splash.destroy()
 
+
+# ============================================================
+#  MAIN WINDOW SETUP
+# ============================================================
 show_splash_screen()
 
-# Create main engine window
 root = tk.Tk()
 root.title("KuromiCore by Logan Whaley")
 root.geometry("900x600")
 root.configure(bg="#1e1e1e")
 
-icon_path = resource_path("assets/icon.ico")
+# Icon
 try:
-    root.iconbitmap(default=icon_path)
+    _, resource_path = get_kuromi_api()
+    icon_path = resource_path("assets/icon.ico")
     root.iconbitmap(icon_path)
-    root.update_idletasks()
-except (tk.TclError, Exception) as e:
+except Exception as e:
     print(f"[Warning] Could not set engine icon: {e}")
 
-# Top Frame
+# ============================================================
+#  GUI SETUP
+# ============================================================
 top_frame = tk.Frame(root, bg="#1e1e1e")
 top_frame.pack(fill=tk.X, pady=10)
 
-# Resolution Dropdown
 resolution_var = tk.StringVar(value="800x600")
-res_label = tk.Label(top_frame, text="Resolution:", bg="#1e1e1e", fg="white", font=("Consolas", 10))
-res_label.pack(side=tk.LEFT, padx=(30, 5))
-res_menu = ttk.Combobox(top_frame, textvariable=resolution_var, values=["640x480", "800x600", "1024x768", "1280x720"], width=15)
-res_menu.pack(side=tk.LEFT)
+tk.Label(
+    top_frame, text="Resolution:", bg="#1e1e1e",
+    fg="white", font=("Consolas", 10)
+).pack(side=tk.LEFT, padx=(30, 5))
 
-# Editor
-editor = tk.Text(root, height=18, bg="#2d2d2d", fg="#ffffff", insertbackground="white", relief="flat", font=("Consolas", 12))
+ttk.Combobox(
+    top_frame, textvariable=resolution_var,
+    values=["640x480", "800x600", "1024x768", "1280x720"],
+    width=15
+).pack(side=tk.LEFT)
+
+editor = tk.Text(
+    root, height=18, bg="#2d2d2d", fg="#ffffff",
+    insertbackground="white", relief="flat",
+    font=("Consolas", 12)
+)
 editor.pack(fill=tk.BOTH, padx=10, pady=10, expand=True)
 
-# Output Box
-output_box = tk.Text(root, height=10, bg="#111", fg="#00ffcc", relief="flat", font=("Consolas", 11))
-output_box.pack(fill=tk.BOTH, padx=10, pady=(0,10), expand=True)
+output_box = tk.Text(
+    root, height=10, bg="#111", fg="#00ffcc",
+    relief="flat", font=("Consolas", 11)
+)
+output_box.pack(fill=tk.BOTH, padx=10, pady=(0, 10), expand=True)
 
+
+# ============================================================
+#  CORE FUNCTIONS
+# ============================================================
 def run_code():
-    """Run the KuromiScript code in debug mode."""
+    """Run KuromiScript code in debug mode."""
     output_box.delete("1.0", tk.END)
     code = editor.get("1.0", tk.END).strip()
-    
+
     if not code:
         output_box.insert(tk.END, "[!] No code to run!\n")
         return
-    
+
     output_box.insert(tk.END, "[>] Starting KuromiCore Debug Window...\n")
-    
-    def debug_print(message):
-        output_box.insert(tk.END, f"{message}\n")
-        output_box.see(tk.END)
-    
+    run_kuromi_code, resource_path = get_kuromi_api()
+
     game_window = tk.Toplevel()
     game_window.title("KuromiCore Game")
     game_window.geometry("800x600")
-    
+
     try:
         icon_path = resource_path("assets/icon.ico")
-        game_window.iconbitmap(default=icon_path)
         game_window.iconbitmap(icon_path)
-        game_window.update_idletasks()
-    except (tk.TclError, Exception) as e:
-        debug_print(f"[Warning] Could not set game icon: {e}")
-    
+    except Exception:
+        pass
+
     canvas = tk.Canvas(game_window, width=800, height=600, bg="#4B0082")
     canvas.pack()
-    
-    debug_print("[*] Showing KuromiCore splash screen...")
-    splash_text = canvas.create_text(400, 300, text="Made with KuromiCore", 
-                                     fill="white", font=("Arial", 24, "bold"))
-    game_window.update()
-    
-    root.after(2000, lambda: continue_game(game_window, canvas, splash_text, code, debug_print))
 
-def continue_game(game_window, canvas, splash_text, code, debug_print):
-    """Continue game execution after splash screen."""
-    try:
+    splash_text = canvas.create_text(
+        400, 300, text="Made with KuromiCore",
+        fill="white", font=("Arial", 24, "bold")
+    )
+    game_window.update()
+
+    def continue_game():
         canvas.delete(splash_text)
         canvas.configure(bg="black")
         game_window.update()
-        
-        debug_print("[+] Running your game...\n")
-        run_kuromi_code(code, print_func=debug_print, debug_mode=True, 
-                       root=game_window, canvas=canvas)
-        
-        debug_print("\n[OK] Game execution complete!")
-    except tk.TclError:
-        debug_print("\n[X] Game window closed")
-    except Exception as e:
-        debug_print(f"\n[ERROR] Error during execution: {e}")
-        import traceback
-        debug_print(traceback.format_exc())
+
+        def debug_print(msg):
+            output_box.insert(tk.END, f"{msg}\n")
+            output_box.see(tk.END)
+
+        try:
+            debug_print("[+] Running your game...")
+            run_kuromi_code(code, print_func=debug_print, debug_mode=True, root=game_window, canvas=canvas)
+            debug_print("\n[OK] Game execution complete!")
+        except Exception as e:
+            import traceback
+            debug_print(f"\n[ERROR] {e}\n{traceback.format_exc()}")
+
+    root.after(2000, continue_game)
+
 
 def build_to_exe():
-    """Build the current Kuromi game into a standalone EXE using the exporter."""
+    """Save .KUROMI then call KSCompiler to build .exe."""
     code = editor.get("1.0", tk.END).strip()
-    
     if not code:
         messagebox.showwarning("No Code", "Please write some code before building!")
         return
-    
-    # Ask for save location
-    build_path = filedialog.asksaveasfilename(
-        defaultextension=".exe",
-        filetypes=[("Executable Files", "*.exe")],
-        title="Save Game Executable As",
-        initialdir=os.path.join(os.getcwd(), "dist", "builds")
+
+    save_path = filedialog.asksaveasfilename(
+        defaultextension=".KUROMI",
+        filetypes=[("Kuromi Files", "*.KUROMI")],
+        title="Save Kuromi Game File"
     )
-    
-    if not build_path:
+    if not save_path:
         return
-    
-    build_name = os.path.splitext(os.path.basename(build_path))[0]
-    
-    output_box.delete("1.0", tk.END)
-    output_box.insert(tk.END, f"[BUILD] Building: {build_name}.exe\n")
-    output_box.insert(tk.END, "[BUILD] This may take 1-2 minutes...\n\n")
-    output_box.see(tk.END)
-    root.update()
-    
-    def build_thread():
-        try:
-            # Import the exporter
-            from exporter import export_game_to_exe
-            
-            # Run the export
-            success, exe_path, error = export_game_to_exe(code, build_name)
-            
-            if success:
-                file_size = os.path.getsize(exe_path) / 1024 / 1024
-                output_box.insert(tk.END, f"\n[✓] BUILD SUCCESSFUL!\n")
-                output_box.insert(tk.END, f"[FILE] {exe_path}\n")
-                output_box.insert(tk.END, f"[SIZE] {file_size:.2f} MB\n")
-                output_box.insert(tk.END, f"\n[OK] Your game is ready to distribute!\n")
-                output_box.see(tk.END)
-                
-                messagebox.showinfo("Build Success", 
-                    f"Game built successfully!\n\nLocation: {exe_path}\nSize: {file_size:.2f} MB")
-            else:
-                output_box.insert(tk.END, f"\n[✗] BUILD FAILED\n")
-                output_box.insert(tk.END, f"[ERROR] {error}\n")
-                output_box.see(tk.END)  # FIXED: Removed extra parenthesis
-                
-                messagebox.showerror("Build Failed", f"Build failed:\n\n{error}")
-                
-        except ImportError:
-            output_box.insert(tk.END, "\n[✗] ERROR: exporter.py not found!\n")
-            output_box.insert(tk.END, "[!] Make sure exporter.py is in the same folder as kuromi_engine.py\n")
-            output_box.see(tk.END)
-            messagebox.showerror("Exporter Missing", "exporter.py not found!\n\nMake sure it's in the same folder as the engine.")
-        except Exception as e:
-            output_box.insert(tk.END, f"\n[✗] UNEXPECTED ERROR\n")
-            output_box.insert(tk.END, f"{str(e)}\n")
-            import traceback
-            output_box.insert(tk.END, traceback.format_exc())
-            output_box.see(tk.END)
-            messagebox.showerror("Build Error", f"An error occurred:\n{e}")
-    
-    import threading
-    threading.Thread(target=build_thread, daemon=True).start()
+
+    with open(save_path, "w", encoding="utf-8") as f:
+        f.write(code)
+
+    output_box.insert(tk.END, f"[KuromiCore]: Saved script to {save_path}\n")
+    output_box.insert(tk.END, "[KuromiCore]: Launching KSCompiler...\n")
+
+    kscompiler_path = os.path.join(os.getcwd(), "KSCompiler.bat")
+    if not os.path.exists(kscompiler_path):
+        messagebox.showerror("Missing KSCompiler", f"Could not find {kscompiler_path}")
+        return
+
+    # Launch KSCompiler
+    os.system(f'start cmd /k "{kscompiler_path}" "{save_path}"')
+
 
 def open_file():
+    """Open a .KUROMI file into editor."""
     path = filedialog.askopenfilename(filetypes=[("Kuromi Files", "*.KUROMI"), ("All Files", "*.*")])
-    if path:
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                editor.delete("1.0", tk.END)
-                editor.insert("1.0", f.read())
-            root.title(f"KuromiCore by Logan Whaley - {os.path.basename(path)}")
-            output_box.insert(tk.END, f"[OK] Opened: {os.path.basename(path)}\n")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to open file:\n{e}")
+    if not path:
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            editor.delete("1.0", tk.END)
+            editor.insert("1.0", f.read())
+        root.title(f"KuromiCore - {os.path.basename(path)}")
+        output_box.insert(tk.END, f"[OK] Opened: {os.path.basename(path)}\n")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open file:\n{e}")
+
 
 def save_file():
-    path = filedialog.asksaveasfilename(defaultextension=".KUROMI", 
-                                       filetypes=[("Kuromi Files", "*.KUROMI"), ("All Files", "*.*")])
-    if path:
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(editor.get("1.0", tk.END))
-            root.title(f"KuromiCore by Logan Whaley - {os.path.basename(path)}")
-            output_box.insert(tk.END, f"[OK] Saved: {os.path.basename(path)}\n")
-            messagebox.showinfo("Saved", f"File saved successfully!")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save file:\n{e}")
+    """Save the current code to a .KUROMI file."""
+    path = filedialog.asksaveasfilename(
+        defaultextension=".KUROMI",
+        filetypes=[("Kuromi Files", "*.KUROMI"), ("All Files", "*.*")]
+    )
+    if not path:
+        return
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(editor.get("1.0", tk.END))
+        output_box.insert(tk.END, f"[OK] Saved: {os.path.basename(path)}\n")
+        messagebox.showinfo("Saved", "File saved successfully!")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save file:\n{e}")
 
-# Buttons
+
+# ============================================================
+#  BUTTONS
+# ============================================================
 buttons = [
     ("[OPEN]", open_file, "#6a5acd"),
     ("[SAVE]", save_file, "#6a5acd"),
@@ -254,22 +247,18 @@ buttons = [
 
 for text, cmd, color in buttons:
     tk.Button(
-        top_frame,
-        text=text,
-        command=cmd,
-        bg=color,
-        fg="white",
-        relief="flat",
-        padx=10,
-        pady=5,
-        font=("Consolas", 10, "bold")
+        top_frame, text=text, command=cmd,
+        bg=color, fg="white", relief="flat",
+        padx=10, pady=5, font=("Consolas", 10, "bold")
     ).pack(side=tk.LEFT, padx=5)
 
-# Insert sample code on startup
+
+# ============================================================
+#  SAMPLE GAME
+# ============================================================
 sample_code = """// KuromiCore Sample Game - Drawing Sprites!
 Kuromi <Start>
 
-// Draw a simple character
 DrawCircle 400 200 50 "pink"
 DrawRectangle 375 250 50 100 "purple"
 DrawCircle 385 190 8 "black"
@@ -281,4 +270,5 @@ ShowText (centered) "Try DrawRectangle, DrawCircle, DrawLine, DrawTriangle!" 400
 """
 editor.insert("1.0", sample_code)
 
+# ============================================================
 root.mainloop()

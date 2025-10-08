@@ -1,8 +1,7 @@
-# hook-tkinter.py
-# PyInstaller hook to properly bundle tkinter
-
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
-
-datas = collect_data_files('tkinter')
-hiddenimports = collect_submodules('tkinter')
-hiddenimports += ['_tkinter']
+cmd = [
+    python_exe, "-m", "PyInstaller",
+    "--clean", "--noconfirm", "--onedir", "--windowed",
+    "--distpath", BUILD_ROOT,
+    "--additional-hooks-dir", BASE_DIR,  # 👈 this line loads your hook-tkinter.py
+    spec_path
+]

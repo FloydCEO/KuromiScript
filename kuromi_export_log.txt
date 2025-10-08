@@ -1,0 +1,74 @@
+Kuromi Export Log initialized.
+2025-10-08 06:23:52,653 DEBUG: C:\Users\LykoD\AppData\Local\Programs\Python\Python311-32\python.exe -m PyInstaller --clean --noconfirm --onedir --windowed --distpath C:\Users\LykoD\OneDrive\Documents\GitHub\KuromiScript\dist\dist\builds\ExampleGame --workpath C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build --specpath C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx --add-data C:\Users\LykoD\OneDrive\Documents\GitHub\KuromiScript\assets;assets --hidden-import pygame --hidden-import tkinter --icon C:\Users\LykoD\OneDrive\Documents\GitHub\KuromiScript\assets\icon.ico C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\ExampleGame.py
+2025-10-08 06:24:07,307 DEBUG: 
+2025-10-08 06:24:07,307 DEBUG: 433 INFO: PyInstaller: 6.16.0, contrib hooks: 2025.9
+433 INFO: Python: 3.11.9
+451 INFO: Platform: Windows-10-10.0.26100-SP0
+451 INFO: Python environment: C:\Users\LykoD\AppData\Local\Programs\Python\Python311-32
+454 INFO: wrote C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\ExampleGame.spec
+459 INFO: Removing temporary files and cleaning cache in C:\Users\LykoD\AppData\Local\pyinstaller
+478 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\LykoD\\OneDrive\\Documents\\GitHub\\KuromiScript',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\python311.zip',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\DLLs',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages',
+ 'C:\\Users\\LykoD\\AppData\\Local\\Temp\\kuromi_s112fohx']
+1172 INFO: Appending 'datas' from .spec
+1174 INFO: checking Analysis
+1174 INFO: Building Analysis because Analysis-00.toc is non existent
+1174 INFO: Looking for Python shared library...
+1174 INFO: Using Python shared library: C:\Users\LykoD\AppData\Local\Programs\Python\Python311-32\python311.dll
+1174 INFO: Running Analysis Analysis-00.toc
+1174 INFO: Target bytecode optimization level: 0
+1174 INFO: Initializing module dependency graph...
+1177 INFO: Initializing module graph hook caches...
+1209 INFO: Analyzing modules for base_library.zip ...
+3345 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks'
+3829 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks'
+6158 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks'
+8745 INFO: Caching module dependency graph...
+8814 INFO: Analyzing C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\ExampleGame.py
+8853 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+8854 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+9222 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks'
+9234 INFO: Processing module hooks (post-graph stage)...
+9242 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks'
+9264 INFO: Performing binary vs. data reclassification (928 entries)
+9459 INFO: Looking for ctypes DLLs
+9473 INFO: Analyzing run-time hooks ...
+9474 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+9478 INFO: Including run-time hook 'pyi_rth__tkinter.py' from 'C:\\Users\\LykoD\\AppData\\Local\\Programs\\Python\\Python311-32\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+9519 INFO: Creating base_library.zip...
+9568 INFO: Looking for dynamic libraries
+9716 INFO: Extra DLL search directories (AddDllDirectory): []
+9716 INFO: Extra DLL search directories (PATH): []
+10122 INFO: Warnings written to C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build\ExampleGame\warn-ExampleGame.txt
+10149 INFO: Graph cross-reference written to C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build\ExampleGame\xref-ExampleGame.html
+10219 INFO: checking PYZ
+10219 INFO: Building PYZ because PYZ-00.toc is non existent
+10219 INFO: Building PYZ (ZlibArchive) C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build\ExampleGame\PYZ-00.pyz
+10423 INFO: Building PYZ (ZlibArchive) C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build\ExampleGame\PYZ-00.pyz completed successfully.
+10432 INFO: checking PKG
+10432 INFO: Building PKG because PKG-00.toc is non existent
+10432 INFO: Building PKG (CArchive) ExampleGame.pkg
+10469 INFO: Building PKG (CArchive) ExampleGame.pkg completed successfully.
+10470 INFO: Bootloader C:\Users\LykoD\AppData\Local\Programs\Python\Python311-32\Lib\site-packages\PyInstaller\bootloader\Windows-32bit-intel\runw.exe
+10470 INFO: checking EXE
+10470 INFO: Building EXE because EXE-00.toc is non existent
+10470 INFO: Building EXE from EXE-00.toc
+10471 INFO: Copying bootloader EXE to C:\Users\LykoD\AppData\Local\Temp\kuromi_s112fohx\build\ExampleGame\ExampleGame.exe
+10570 INFO: Copying icon to EXE
+10644 INFO: Copying 0 resources to EXE
+10644 INFO: Embedding manifest in EXE
+10719 INFO: Appending PKG archive to EXE
+10793 INFO: Fixing EXE headers
+12188 INFO: Building EXE from EXE-00.toc completed successfully.
+12203 INFO: checking COLLECT
+12203 INFO: Building COLLECT because COLLECT-00.toc is non existent
+12203 INFO: Removing dir C:\Users\LykoD\OneDrive\Documents\GitHub\KuromiScript\dist\dist\builds\ExampleGame\ExampleGame
+12204 INFO: Building COLLECT COLLECT-00.toc
+14174 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+14207 INFO: Build complete! The results are available in: C:\Users\LykoD\OneDrive\Documents\GitHub\KuromiScript\dist\dist\builds\ExampleGame
+
