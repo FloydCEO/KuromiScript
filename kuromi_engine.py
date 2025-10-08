@@ -74,7 +74,7 @@ show_splash_screen()
 
 # Create main engine window
 root = tk.Tk()
-root.title("KuromiCore by Logan Whaley 🎀")
+root.title("KuromiCore by Logan Whaley")
 root.geometry("900x600")
 root.configure(bg="#1e1e1e")
 
@@ -113,10 +113,10 @@ def run_code():
     code = editor.get("1.0", tk.END).strip()
     
     if not code:
-        output_box.insert(tk.END, "⚠ No code to run!\n")
+        output_box.insert(tk.END, "[!] No code to run!\n")
         return
     
-    output_box.insert(tk.END, "▶ Starting KuromiCore Debug Window...\n")
+    output_box.insert(tk.END, "[>] Starting KuromiCore Debug Window...\n")
     
     # Create a debug output function
     def debug_print(message):
@@ -141,7 +141,7 @@ def run_code():
     canvas.pack()
     
     # Show branding splash screen
-    debug_print("✨ Showing KuromiCore splash screen...")
+    debug_print("[*] Showing KuromiCore splash screen...")
     splash_text = canvas.create_text(400, 300, text="Made with KuromiCore", 
                                      fill="white", font=("Arial", 24, "bold"))
     game_window.update()
@@ -157,18 +157,18 @@ def continue_game(game_window, canvas, splash_text, code, debug_print):
         canvas.configure(bg="black")
         game_window.update()
         
-        debug_print("🎮 Running your game...\n")
+        debug_print("[+] Running your game...\n")
         
         # Run user code
         run_kuromi_code(code, print_func=debug_print, debug_mode=True, 
                        root=game_window, canvas=canvas)
         
-        debug_print("\n✅ Game execution complete!")
+        debug_print("\n[OK] Game execution complete!")
     except tk.TclError:
         # Window was closed
-        debug_print("\n🛑 Game window closed")
+        debug_print("\n[X] Game window closed")
     except Exception as e:
-        debug_print(f"\n❌ Error during execution: {e}")
+        debug_print(f"\n[ERROR] Error during execution: {e}")
         import traceback
         debug_print(traceback.format_exc())
 
@@ -200,7 +200,7 @@ def build_to_exe():
         with open(interpreter_path, "r", encoding="utf-8") as f:
             interpreter_code = f.read()
     except FileNotFoundError:
-        output_box.insert(tk.END, f"\n❌ Error: kuromi_interpreter.py not found at {interpreter_path}\n")
+        output_box.insert(tk.END, f"\n[ERROR] kuromi_interpreter.py not found at {interpreter_path}\n")
         output_box.see(tk.END)
         return
     
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     builds_dir = os.path.join(os.getcwd(), "builds")
     os.makedirs(builds_dir, exist_ok=True)
 
-    output_box.insert(tk.END, f"⚙ Building KuromiCore Game: {build_name}...\n")
+    output_box.insert(tk.END, f"[BUILD] Building KuromiCore Game: {build_name}...\n")
     output_box.see(tk.END)
 
     # List of assets to bundle
@@ -293,21 +293,21 @@ if __name__ == "__main__":
             
             # Check if file actually exists
             if os.path.exists(exe_path):
-                output_box.insert(tk.END, f"\n✅ Build complete!\n")
-                output_box.insert(tk.END, f"📦 Location: {exe_path}\n")
-                output_box.insert(tk.END, f"📊 File size: {os.path.getsize(exe_path) / 1024 / 1024:.2f} MB\n")
+                output_box.insert(tk.END, f"\n[OK] Build complete!\n")
+                output_box.insert(tk.END, f"[FILE] Location: {exe_path}\n")
+                output_box.insert(tk.END, f"[SIZE] File size: {os.path.getsize(exe_path) / 1024 / 1024:.2f} MB\n")
                 messagebox.showinfo("Build Success", f"Game built successfully!\n\n{exe_path}")
             else:
-                output_box.insert(tk.END, f"\n❌ Build failed: EXE not found at expected location\n")
+                output_box.insert(tk.END, f"\n[ERROR] Build failed: EXE not found at expected location\n")
                 output_box.insert(tk.END, f"Expected: {exe_path}\n")
                 output_box.insert(tk.END, f"Build output:\n{proc.stdout}\n")
                 messagebox.showerror("Build Failed", "EXE was not created. Check output for details.")
                 
         except subprocess.CalledProcessError as e:
-            output_box.insert(tk.END, f"\n❌ Build failed:\n{e.stderr}\n")
+            output_box.insert(tk.END, f"\n[ERROR] Build failed:\n{e.stderr}\n")
             messagebox.showerror("Build Failed", "Build failed! Check output for details.")
         except Exception as e:
-            output_box.insert(tk.END, f"\n❌ Unexpected error: {e}\n")
+            output_box.insert(tk.END, f"\n[ERROR] Unexpected error: {e}\n")
         
         output_box.see(tk.END)
     
@@ -321,8 +321,8 @@ def open_file():
             with open(path, "r", encoding="utf-8") as f:
                 editor.delete("1.0", tk.END)
                 editor.insert("1.0", f.read())
-            root.title(f"KuromiCore by Logan Whaley 🎀 - {os.path.basename(path)}")
-            output_box.insert(tk.END, f"✓ Opened: {os.path.basename(path)}\n")
+            root.title(f"KuromiCore by Logan Whaley - {os.path.basename(path)}")
+            output_box.insert(tk.END, f"[OK] Opened: {os.path.basename(path)}\n")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open file:\n{e}")
 
@@ -333,18 +333,18 @@ def save_file():
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(editor.get("1.0", tk.END))
-            root.title(f"KuromiCore by Logan Whaley 🎀 - {os.path.basename(path)}")
-            output_box.insert(tk.END, f"✓ Saved: {os.path.basename(path)}\n")
+            root.title(f"KuromiCore by Logan Whaley - {os.path.basename(path)}")
+            output_box.insert(tk.END, f"[OK] Saved: {os.path.basename(path)}\n")
             messagebox.showinfo("Saved", f"File saved successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save file:\n{e}")
 
 # Buttons
 buttons = [
-    ("📂 Open", open_file, "#6a5acd"),
-    ("💾 Save", save_file, "#6a5acd"),
-    ("▶ Run", run_code, "#7a3db8"),
-    ("⚙ Build to EXE", build_to_exe, "#b83d8f")
+    ("[OPEN]", open_file, "#6a5acd"),
+    ("[SAVE]", save_file, "#6a5acd"),
+    ("[RUN]", run_code, "#7a3db8"),
+    ("[BUILD EXE]", build_to_exe, "#b83d8f")
 ]
 
 for text, cmd, color in buttons:
