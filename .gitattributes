@@ -1,3 +1,0 @@
-# Force GitHub to recognize KuromiScript
-*.kuromi linguist-language=KuromiScript
-*.ks linguist-language=KuromiScript
