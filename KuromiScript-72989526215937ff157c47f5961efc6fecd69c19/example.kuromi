@@ -1,8 +1,0 @@
-Kuromi <Game Start>
-Print "Welcome to the Kuromi Language!"
-Let name = "Lyko"
-Print "Hello, " + name
-Let a = 5
-Let b = 15
-Print "Sum ="
-Print a + b

@@ -1,0 +1,7 @@
+name = "World"
+print "Hello, {name}!"
+
+render <html>
+    <h1>Hello from KuromiScript!</h1>
+    <p>Welcome, {name}</p>
+</html>
