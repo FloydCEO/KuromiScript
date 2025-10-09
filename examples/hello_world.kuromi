@@ -1,7 +1,7 @@
-name = "World"
-print "Hello, {name}!"
-
-render <html>
-    <h1>Hello from KuromiScript!</h1>
-    <p>Welcome, {name}</p>
-</html>
+// examples/hello_world.kuromi
+Kuromi <Start>
+DrawCircle 400 200 50 "pink"
+DrawRectangle 375 250 50 100 "purple"
+ShowText (centered) "Hello KuromiScript!" 400 400
+Wait 5000
+Kuromi <Close>
