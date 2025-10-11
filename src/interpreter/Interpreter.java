@@ -1,9 +1,10 @@
-// src/runtime/Interpreter.java
-package runtime;
+// src/interpreter/Interpreter.java
+package interpreter;
 
 import parser.ASTNode;
 import lexer.Token;
 import lexer.TokenType;
+import runtime.Value;
 import java.util.ArrayList;
 import java.awt.*;
 import java.awt.image.BufferedImage;

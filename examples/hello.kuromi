@@ -1,0 +1,29 @@
+// hello.kuromi - Your First KuromiScript!
+// Save this in the examples/ folder
+
+game 800 600 {
+    // Display a welcome message
+    show "Welcome to KuromiScript! 🎮" 400 100 center
+    
+    // Draw a colorful background
+    draw rect 0 0 800 600 "black"
+    
+    // Draw some fun shapes
+    draw circle 400 300 100 "pink"
+    draw circle 350 280 20 "white"
+    draw circle 450 280 20 "white"
+    
+    // Draw a smile
+    draw line 350 340 450 340 "white"
+    
+    // Add a border
+    draw rect 50 50 700 500 "magenta"
+    
+    // Display instructions
+    show "Hello World!" 400 300 center
+    show "Press F5 to run!" 400 500 center
+    
+    // Print to console
+    print "🎉 Hello from KuromiScript!"
+    print "Your first program is running!"
+}

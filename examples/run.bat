@@ -1,64 +1,73 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo Compiling KuromiScript...
-echo Current directory: %CD%
+echo ╔════════════════════════════════════════╗
+echo ║        KuromiCore Quick Launcher      ║
+echo ╚════════════════════════════════════════╝
 echo.
 
-REM Create out directory if it doesn't exist
-if not exist "out" mkdir out
-
-REM Check if we're in the examples directory (wrong location)
-if exist "..\src" (
-    echo ERROR: You are in the examples directory
-    echo Please run this script from the project root directory.
-    echo Switching to parent directory...
-    cd ..
-)
-
-echo Searching for Java files...
-echo.
-
-REM Find all Java files recursively and compile them
-echo Compiling files...
-
-REM Method 1: Try compiling with package structure
-if exist "src\main\Main.java" (
-    javac -d out src\lexer\*.java src\parser\*.java src\runtime\*.java src\main\*.java 2>&1
-) else (
-    REM Method 2: If Main.java is directly in src
-    javac -d out src\lexer\*.java src\parser\*.java src\runtime\*.java src\Main.java 2>&1
-)
-
-if %ERRORLEVEL% NEQ 0 (
+REM Check if KuromiCore.jar exists
+if exist "KuromiCore.jar" (
+    echo ✓ Found KuromiCore.jar
     echo.
-    echo Compilation failed
+
+    REM If no arguments, launch GUI
+    if "%~1"=="" (
+        echo 🎮 Launching GUI Editor...
+        echo.
+        java -jar KuromiCore.jar
+        goto :end
+    )
+
+    REM Pass all arguments to KuromiCore
+    echo ▶️  Running: java -jar KuromiCore.jar %*
+    echo.
+    java -jar KuromiCore.jar %*
+    goto :end
+)
+
+REM KuromiCore.jar not found, check if compiled
+if not exist "out" (
+    echo ❌ KuromiCore not built yet!
+    echo.
+    echo Please run build.bat first:
+    echo   build.bat
     echo.
     pause
     exit /b 1
 )
 
-echo.
-echo ========================================
-echo Compilation successful!
-echo ========================================
+echo ℹ️  Using compiled classes...
 echo.
 
-REM Determine the correct class path
-if exist "src\main\Main.java" (
-    echo To run a script:
-    echo   java -cp out main.Main examples\test.kuromi
-    echo.
-    echo To compile to HTML:
-    echo   java -cp out main.Main --web examples\test.kuromi
-) else (
-    echo To run a script:
-    echo   java -cp out Main examples\test.kuromi
-    echo.
-    echo To compile to HTML:
-    echo   java -cp out Main --web examples\test.kuromi
+REM Check if we're in the examples directory
+if exist "..\src" (
+    echo 📁 Detected examples directory, moving to project root...
+    cd ..
 )
 
+REM If no arguments, try to launch GUI
+if "%~1"=="" (
+    echo 🎮 Launching GUI Editor...
+    echo.
+    java -cp out Main
+    goto :end
+)
+
+REM Run with arguments
+echo ▶️  Running: java -cp out Main %*
+echo.
+java -cp out Main %*
+
+:end
+echo.
+echo ═══════════════════════════════════════
+if %ERRORLEVEL% EQU 0 (
+    echo ✅ Completed successfully!
+) else (
+    echo ❌ Exited with error code %ERRORLEVEL%
+)
+echo ═══════════════════════════════════════
 echo.
 pause
 endlocal
