@@ -1,12 +1,8 @@
-// src/parser/Parser.java
 package parser;
 
-import interpreter.KuromiValue;
 import lexer.Token;
 import lexer.TokenType;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Parser {
     private final List<Token> tokens;
@@ -19,196 +15,325 @@ public class Parser {
     public List<ASTNode.Stmt> parse() {
         List<ASTNode.Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            ASTNode.Stmt stmt = statement();
+            if (stmt != null) {
+                statements.add(stmt);
+            }
         }
         return statements;
     }
 
     private ASTNode.Stmt statement() {
-        if (match(TokenType.KUROMI)) {
-            if (match(TokenType.START)) {
-                return new ASTNode.StartGame();
-            } else if (match(TokenType.CLOSE)) {
-                return new ASTNode.CloseGame();
+        try {
+            if (match(TokenType.GAME)) return gameStatement();
+            if (match(TokenType.LET)) return letStatement();
+            if (match(TokenType.FN)) return functionStatement();
+            if (match(TokenType.RETURN)) return returnStatement();
+            if (match(TokenType.IF)) return ifStatement();
+            if (match(TokenType.WHILE)) return whileStatement();
+            if (match(TokenType.FOR)) return forStatement();
+            if (match(TokenType.LOAD)) return loadStatement();
+            if (match(TokenType.DRAW)) return drawStatement();
+            if (match(TokenType.SHOW)) return showStatement();
+            if (match(TokenType.PLAY)) return playStatement();
+            if (match(TokenType.PRINT)) return printStatement();
+            if (match(TokenType.LEFT_BRACE)) return new ASTNode.Block(block());
+
+            if (check(TokenType.IDENTIFIER)) {
+                Token name = peek();
+                if (peekNext().type == TokenType.EQUAL) {
+                    advance();
+                    advance();
+                    ASTNode.Expr value = expression();
+                    consumeStatementEnd();
+                    return new ASTNode.Assignment(name, value);
+                }
             }
-        } else if (match(TokenType.LOAD_IMAGE)) {
-            return loadImageStmt();
-        } else if (match(TokenType.DISPLAY_IMAGE)) {
-            return displayImageStmt();
-        } else if (match(TokenType.SHOW_TEXT)) {
-            return showTextStmt();
-        } else if (match(TokenType.PLAY_SOUND)) {
-            return playSoundStmt();
-        } else if (match(TokenType.DRAW_RECTANGLE)) {
-            return drawRectangleStmt();
-        } else if (match(TokenType.DRAW_CIRCLE)) {
-            return drawCircleStmt();
-        } else if (match(TokenType.DRAW_LINE)) {
-            return drawLineStmt();
-        } else if (match(TokenType.DRAW_TRIANGLE)) {
-            return drawTriangleStmt();
-        } else if (match(TokenType.PRINT)) {
-            return printStmt();
-        } else if (match(TokenType.LET)) {
-            return varDecl();
-        } else if (match(TokenType.REPEAT)) {
-            return repeatStmt();
-        } else if (match(TokenType.WAIT)) {
-            return waitStmt();
-        } else if (match(TokenType.IF)) {
-            return ifStmt();
-        } else if (match(TokenType.CALL)) {
-            return callStmt();
+
+            return expressionStatement();
+        } catch (Exception e) {
+            synchronize();
+            return null;
         }
-        throw error(peek(), "Expected statement.");
     }
 
-    private ASTNode.Stmt loadImageStmt() {
-        Token varName = consume(TokenType.STRING, "Expect string for variable name.");
-        Token path = consume(TokenType.STRING, "Expect string for path.");
-        return new ASTNode.LoadImage(new Token(TokenType.IDENTIFIER, varName.literal.toString(), null, varName.line), KuromiValue.string(path.literal.toString()));
+    private ASTNode.Stmt gameStatement() {
+        int width = (int) ((Number) consume(TokenType.NUMBER, "Expect width").literal).doubleValue();
+        int height = (int) ((Number) consume(TokenType.NUMBER, "Expect height").literal).doubleValue();
+        consume(TokenType.LEFT_BRACE, "Expect '{'");
+        List<ASTNode.Stmt> body = block();
+        return new ASTNode.GameStart(width, height, body);
     }
 
-    private ASTNode.Stmt displayImageStmt() {
-        Token varName = consume(TokenType.IDENTIFIER, "Expect identifier for image.");
-        ASTNode.Expr x = expression();
-        ASTNode.Expr y = expression();
-        return new ASTNode.DisplayImage(varName, x, y);
-    }
-
-    private ASTNode.Stmt showTextStmt() {
-        Token alignment = null;
-        if (match(TokenType.LEFT_PAREN)) {
-            alignment = consume(TokenType.CENTERED, TokenType.LEFT, TokenType.RIGHT, "Expect alignment.");
-            consume(TokenType.RIGHT_PAREN, "Expect ')' after alignment.");
-        }
-        Token textToken = consume(TokenType.STRING, "Expect string for text.");
-        ASTNode.Expr x = expression();
-        ASTNode.Expr y = expression();
-        return new ASTNode.ShowText(alignment, KuromiValue.string(textToken.literal.toString()), x, y);
-    }
-
-    private ASTNode.Stmt playSoundStmt() {
-        Token path = consume(TokenType.STRING, "Expect string for sound path.");
-        return new ASTNode.PlaySound(KuromiValue.string(path.literal.toString()));
-    }
-
-    private ASTNode.Stmt drawRectangleStmt() {
-        ASTNode.Expr x = expression();
-        ASTNode.Expr y = expression();
-        ASTNode.Expr w = expression();
-        ASTNode.Expr h = expression();
-        Token color = consume(TokenType.STRING, "Expect string for color.");
-        return new ASTNode.DrawRectangle(x, y, w, h, KuromiValue.string(color.literal.toString()));
-    }
-
-    private ASTNode.Stmt drawCircleStmt() {
-        ASTNode.Expr x = expression();
-        ASTNode.Expr y = expression();
-        ASTNode.Expr r = expression();
-        Token color = consume(TokenType.STRING, "Expect string for color.");
-        return new ASTNode.DrawCircle(x, y, r, KuromiValue.string(color.literal.toString()));
-    }
-
-    private ASTNode.Stmt drawLineStmt() {
-        ASTNode.Expr x1 = expression();
-        ASTNode.Expr y1 = expression();
-        ASTNode.Expr x2 = expression();
-        ASTNode.Expr y2 = expression();
-        Token color = consume(TokenType.STRING, "Expect string for color.");
-        return new ASTNode.DrawLine(x1, y1, x2, y2, KuromiValue.string(color.literal.toString()));
-    }
-
-    private ASTNode.Stmt drawTriangleStmt() {
-        ASTNode.Expr x1 = expression();
-        ASTNode.Expr y1 = expression();
-        ASTNode.Expr x2 = expression();
-        ASTNode.Expr y2 = expression();
-        ASTNode.Expr x3 = expression();
-        ASTNode.Expr y3 = expression();
-        Token color = consume(TokenType.STRING, "Expect string for color.");
-        return new ASTNode.DrawTriangle(x1, y1, x2, y2, x3, y3, KuromiValue.string(color.literal.toString()));
-    }
-
-    private ASTNode.Stmt printStmt() {
-        ASTNode.Expr expr = expression();
-        return new ASTNode.PrintStmt(expr);
-    }
-
-    private ASTNode.Stmt varDecl() {
-        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
-        consume(TokenType.EQUAL, "Expect '=' after variable name.");
+    private ASTNode.Stmt letStatement() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name");
+        consume(TokenType.EQUAL, "Expect '='");
         ASTNode.Expr initializer = expression();
-        return new ASTNode.VarDecl(name, initializer);
+        consumeStatementEnd();
+        return new ASTNode.Let(name, initializer);
     }
 
-    private ASTNode.Stmt repeatStmt() {
-        ASTNode.Expr count = expression();
-        consume(TokenType.TIMES, "Expect 'Times' after count.");
-        consume(TokenType.COLON, "Expect ':' after 'Times'.");
-        List<ASTNode.Stmt> body = new ArrayList<>();
-        while (!isAtEnd() && !check(TokenType.EOF)) {
-            body.add(statement());
-        }
-        return new ASTNode.Repeat(count, body);
-    }
-
-    private ASTNode.Stmt waitStmt() {
-        ASTNode.Expr millis = expression();
-        return new ASTNode.Wait(millis);
-    }
-
-    private ASTNode.Stmt ifStmt() {
-        ASTNode.Expr condition = expression();
-        consume(TokenType.THEN, "Expect 'Then' after condition.");
-        consume(TokenType.COLON, "Expect ':' after 'Then'.");
-        List<ASTNode.Stmt> thenBranch = new ArrayList<>();
-        while (!isAtEnd() && !check(TokenType.ELSE) && !check(TokenType.EOF)) {
-            thenBranch.add(statement());
-        }
-        List<ASTNode.Stmt> elseBranch = new ArrayList<>();
-        if (match(TokenType.ELSE)) {
-            consume(TokenType.COLON, "Expect ':' after 'Else'.");
-            while (!isAtEnd() && !check(TokenType.EOF)) {
-                elseBranch.add(statement());
-            }
-        }
-        return new ASTNode.IfStmt(condition, thenBranch, elseBranch);
-    }
-
-    private ASTNode.Stmt callStmt() {
-        Token name = previous();
-        List<ASTNode.Expr> args = new ArrayList<>();
+    private ASTNode.Stmt functionStatement() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect function name");
+        consume(TokenType.LEFT_PAREN, "Expect '('");
+        List<Token> params = new ArrayList<>();
         if (!check(TokenType.RIGHT_PAREN)) {
             do {
-                args.add(expression());
+                params.add(consume(TokenType.IDENTIFIER, "Expect parameter name"));
             } while (match(TokenType.COMMA));
         }
-        consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
-        return new ASTNode.Call(name, args);
+        consume(TokenType.RIGHT_PAREN, "Expect ')'");
+        consume(TokenType.LEFT_BRACE, "Expect '{'");
+        List<ASTNode.Stmt> body = block();
+        return new ASTNode.Function(name, params, body);
+    }
+
+    private ASTNode.Stmt returnStatement() {
+        ASTNode.Expr value = null;
+        if (!check(TokenType.SEMICOLON) && !check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            value = expression();
+        }
+        consumeStatementEnd();
+        return new ASTNode.Return(value);
+    }
+
+    private ASTNode.Stmt ifStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '('");
+        ASTNode.Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')'");
+        consume(TokenType.LEFT_BRACE, "Expect '{'");
+        List<ASTNode.Stmt> thenBranch = block();
+        List<ASTNode.Stmt> elseBranch = new ArrayList<>();
+        if (match(TokenType.ELSE)) {
+            consume(TokenType.LEFT_BRACE, "Expect '{'");
+            elseBranch = block();
+        }
+        return new ASTNode.If(condition, thenBranch, elseBranch);
+    }
+
+    private ASTNode.Stmt whileStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '('");
+        ASTNode.Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')'");
+        consume(TokenType.LEFT_BRACE, "Expect '{'");
+        List<ASTNode.Stmt> body = block();
+        return new ASTNode.While(condition, body);
+    }
+
+    private ASTNode.Stmt forStatement() {
+        Token variable = consume(TokenType.IDENTIFIER, "Expect variable name");
+        consume(TokenType.IN, "Expect 'in'");
+        ASTNode.Expr iterable = expression();
+        consume(TokenType.LEFT_BRACE, "Expect '{'");
+        List<ASTNode.Stmt> body = block();
+        return new ASTNode.For(variable, iterable, body);
+    }
+
+    private ASTNode.Stmt loadStatement() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name");
+        consume(TokenType.COLON, "Expect ':'");
+        String path = (String) consume(TokenType.STRING, "Expect file path").literal;
+        consumeStatementEnd();
+        return new ASTNode.Load(name, path);
+    }
+
+    private ASTNode.Stmt drawStatement() {
+        Token typeToken = consume(TokenType.IDENTIFIER, "Expect draw type");
+        String type = typeToken.lexeme.toLowerCase();
+
+        // FIX: Changed from List<Expr> to List<ASTNode.Expr>
+        List<ASTNode.Expr> args = new ArrayList<>();
+        String color = "black";
+
+        if ("rect".equals(type)) {
+            args.add(expression());
+            args.add(expression());
+            args.add(expression());
+            args.add(expression());
+            color = (String) consume(TokenType.STRING, "Expect color").literal;
+        } else if ("circle".equals(type)) {
+            args.add(expression());
+            args.add(expression());
+            args.add(expression());
+            color = (String) consume(TokenType.STRING, "Expect color").literal;
+        } else if ("image".equals(type)) {
+            Token imgName = consume(TokenType.IDENTIFIER, "Expect image name");
+            args.add(new ASTNode.Variable(imgName));
+            args.add(expression());
+            args.add(expression());
+        } else if ("line".equals(type)) {
+            args.add(expression());
+            args.add(expression());
+            args.add(expression());
+            args.add(expression());
+            color = (String) consume(TokenType.STRING, "Expect color").literal;
+        }
+
+        consumeStatementEnd();
+        return new ASTNode.Draw(type, args, color);
+    }
+
+    private ASTNode.Stmt showStatement() {
+        String text = (String) consume(TokenType.STRING, "Expect text").literal;
+        ASTNode.Expr x = expression();
+        ASTNode.Expr y = expression();
+        String alignment = "left";
+        if (check(TokenType.IDENTIFIER)) {
+            alignment = advance().lexeme;
+        }
+        consumeStatementEnd();
+        return new ASTNode.Show(text, x, y, alignment);
+    }
+
+    private ASTNode.Stmt playStatement() {
+        String path = (String) consume(TokenType.STRING, "Expect file path").literal;
+        consumeStatementEnd();
+        return new ASTNode.Play(path);
+    }
+
+    private ASTNode.Stmt printStatement() {
+        ASTNode.Expr expr = expression();
+        consumeStatementEnd();
+        return new ASTNode.Print(expr);
+    }
+
+    private ASTNode.Stmt expressionStatement() {
+        ASTNode.Expr expr = expression();
+        consumeStatementEnd();
+        return new ASTNode.ExpressionStmt(expr);
+    }
+
+    private List<ASTNode.Stmt> block() {
+        List<ASTNode.Stmt> statements = new ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            ASTNode.Stmt stmt = statement();
+            if (stmt != null) {
+                statements.add(stmt);
+            }
+        }
+        consume(TokenType.RIGHT_BRACE, "Expect '}'");
+        return statements;
     }
 
     private ASTNode.Expr expression() {
-        if (match(TokenType.NUMBER)) {
-            return new ASTNode.Literal(previous().literal);
-        } else if (match(TokenType.STRING)) {
-            return new ASTNode.Literal(previous().literal);
-        } else if (match(TokenType.IDENTIFIER)) {
-            return new ASTNode.Variable(previous());
-        }
-        throw error(peek(), "Expected expression.");
+        return logicalOr();
     }
 
-    private Token consume(TokenType type, String message) {
-        if (check(type)) return advance();
-        throw error(peek(), message);
+    private ASTNode.Expr logicalOr() {
+        ASTNode.Expr expr = logicalAnd();
+        while (match(TokenType.OR)) {
+            Token operator = previous();
+            ASTNode.Expr right = logicalAnd();
+            expr = new ASTNode.Binary(expr, operator, right);
+        }
+        return expr;
     }
 
-    private Token consume(TokenType... types) {
-        for (TokenType type : types) {
-            if (check(type)) return advance();
+    private ASTNode.Expr logicalAnd() {
+        ASTNode.Expr expr = equality();
+        while (match(TokenType.AND)) {
+            Token operator = previous();
+            ASTNode.Expr right = equality();
+            expr = new ASTNode.Binary(expr, operator, right);
         }
-        throw error(peek(), "Expected one of the types.");
+        return expr;
+    }
+
+    private ASTNode.Expr equality() {
+        ASTNode.Expr expr = comparison();
+        while (match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
+            Token operator = previous();
+            ASTNode.Expr right = comparison();
+            expr = new ASTNode.Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private ASTNode.Expr comparison() {
+        ASTNode.Expr expr = term();
+        while (match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL)) {
+            Token operator = previous();
+            ASTNode.Expr right = term();
+            expr = new ASTNode.Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private ASTNode.Expr term() {
+        ASTNode.Expr expr = factor();
+        while (match(TokenType.MINUS, TokenType.PLUS)) {
+            Token operator = previous();
+            ASTNode.Expr right = factor();
+            expr = new ASTNode.Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private ASTNode.Expr factor() {
+        ASTNode.Expr expr = unary();
+        while (match(TokenType.SLASH, TokenType.STAR, TokenType.PERCENT)) {
+            Token operator = previous();
+            ASTNode.Expr right = unary();
+            expr = new ASTNode.Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private ASTNode.Expr unary() {
+        if (match(TokenType.BANG, TokenType.MINUS, TokenType.NOT)) {
+            Token operator = previous();
+            ASTNode.Expr right = unary();
+            return new ASTNode.Unary(operator, right);
+        }
+        return postfix();
+    }
+
+    private ASTNode.Expr postfix() {
+        ASTNode.Expr expr = primary();
+        while (true) {
+            if (match(TokenType.LEFT_PAREN)) {
+                List<ASTNode.Expr> arguments = new ArrayList<>();
+                if (!check(TokenType.RIGHT_PAREN)) {
+                    do {
+                        arguments.add(expression());
+                    } while (match(TokenType.COMMA));
+                }
+                consume(TokenType.RIGHT_PAREN, "Expect ')'");
+                expr = new ASTNode.Call(expr, arguments);
+            } else if (match(TokenType.LEFT_BRACKET)) {
+                ASTNode.Expr index = expression();
+                consume(TokenType.RIGHT_BRACKET, "Expect ']'");
+                expr = new ASTNode.Index(expr, index);
+            } else {
+                break;
+            }
+        }
+        return expr;
+    }
+
+    private ASTNode.Expr primary() {
+        if (match(TokenType.TRUE)) return new ASTNode.Literal(true);
+        if (match(TokenType.FALSE)) return new ASTNode.Literal(false);
+        if (match(TokenType.NULL)) return new ASTNode.Literal(null);
+        if (match(TokenType.NUMBER)) return new ASTNode.Literal(previous().literal);
+        if (match(TokenType.STRING)) return new ASTNode.Literal(previous().literal);
+        if (match(TokenType.IDENTIFIER)) return new ASTNode.Variable(previous());
+        if (match(TokenType.LEFT_BRACKET)) {
+            List<ASTNode.Expr> elements = new ArrayList<>();
+            if (!check(TokenType.RIGHT_BRACKET)) {
+                do {
+                    elements.add(expression());
+                } while (match(TokenType.COMMA));
+            }
+            consume(TokenType.RIGHT_BRACKET, "Expect ']'");
+            return new ASTNode.ArrayLiteral(elements);
+        }
+        if (match(TokenType.LEFT_PAREN)) {
+            ASTNode.Expr expr = expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')'");
+            return expr;
+        }
+        throw error("Expected expression");
     }
 
     private boolean match(TokenType... types) {
@@ -239,12 +364,50 @@ public class Parser {
         return tokens.get(current);
     }
 
+    private Token peekNext() {
+        if (current + 1 >= tokens.size()) return tokens.get(tokens.size() - 1);
+        return tokens.get(current + 1);
+    }
+
     private Token previous() {
         return tokens.get(current - 1);
     }
 
-    private RuntimeException error(Token token, String message) {
-        System.err.println("[line " + token.line + "] Error at '" + token.lexeme + "': " + message);
-        return new RuntimeException();
+    private Token consume(TokenType type, String message) {
+        if (check(type)) return advance();
+        throw error(message);
+    }
+
+    private void consumeStatementEnd() {
+        if (check(TokenType.SEMICOLON)) advance();
+    }
+
+    private RuntimeException error(String message) {
+        Token token = peek();
+        System.err.println("[Line " + token.line + "] Error at '" + token.lexeme + "': " + message);
+        return new RuntimeException(message);
+    }
+
+    private void synchronize() {
+        advance();
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON) return;
+            switch (peek().type) {
+                case GAME:
+                case LET:
+                case FN:
+                case RETURN:
+                case IF:
+                case WHILE:
+                case FOR:
+                case LOAD:
+                case DRAW:
+                case SHOW:
+                case PLAY:
+                case PRINT:
+                    return;
+            }
+            advance();
+        }
     }
 }

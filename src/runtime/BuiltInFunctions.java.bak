@@ -1,0 +1,210 @@
+// src/runtime/BuiltInFunctions.java
+package runtime;
+
+import interpreter.Interpreter;
+import interpreter.KuromiValue;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+public class BuiltInFunctions {
+    private final Map<String, Function> functions = new HashMap<>();
+    private final Interpreter interpreter;
+    private final Random random = new Random();
+
+    @FunctionalInterface
+    public interface Function {
+        KuromiValue call(KuromiValue[] arguments);
+    }
+
+    public BuiltInFunctions(Interpreter interpreter) {
+        this.interpreter = interpreter;
+        registerFunctions();
+    }
+
+    private void registerFunctions() {
+        // Random number generation
+        functions.put("random", (KuromiValue[] args) -> {
+            if (args.length != 2) throw new RuntimeException("random(min, max) expects 2 arguments.");
+            double min = args[0].asNumber();
+            double max = args[1].asNumber();
+            return KuromiValue.number(min + (max - min) * random.nextDouble());
+        });
+
+        // Key input
+        functions.put("isKeyPressed", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("isKeyPressed(key) expects 1 argument.");
+            String key = args[0].asString().toUpperCase();
+            return KuromiValue.bool(interpreter.isKeyPressed(key));
+        });
+
+        // Sprite movement
+        functions.put("moveSprite", (KuromiValue[] args) -> {
+            if (args.length != 3) throw new RuntimeException("moveSprite(name, dx, dy) expects 3 arguments.");
+            String name = args[0].asString();
+            double dx = args[1].asNumber();
+            double dy = args[2].asNumber();
+            interpreter.moveSprite(name, dx, dy);
+            return KuromiValue.nullValue();
+        });
+
+        // Math functions
+        functions.put("abs", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("abs(x) expects 1 argument.");
+            return KuromiValue.number(Math.abs(args[0].asNumber()));
+        });
+
+        functions.put("sqrt", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("sqrt(x) expects 1 argument.");
+            return KuromiValue.number(Math.sqrt(args[0].asNumber()));
+        });
+
+        functions.put("pow", (KuromiValue[] args) -> {
+            if (args.length != 2) throw new RuntimeException("pow(base, exponent) expects 2 arguments.");
+            return KuromiValue.number(Math.pow(args[0].asNumber(), args[1].asNumber()));
+        });
+
+        functions.put("sin", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("sin(x) expects 1 argument.");
+            return KuromiValue.number(Math.sin(args[0].asNumber()));
+        });
+
+        functions.put("cos", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("cos(x) expects 1 argument.");
+            return KuromiValue.number(Math.cos(args[0].asNumber()));
+        });
+
+        functions.put("floor", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("floor(x) expects 1 argument.");
+            return KuromiValue.number(Math.floor(args[0].asNumber()));
+        });
+
+        functions.put("ceil", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("ceil(x) expects 1 argument.");
+            return KuromiValue.number(Math.ceil(args[0].asNumber()));
+        });
+
+        functions.put("round", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("round(x) expects 1 argument.");
+            return KuromiValue.number(Math.round(args[0].asNumber()));
+        });
+
+        // String functions
+        functions.put("len", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("len(x) expects 1 argument.");
+            if (args[0].getType() == KuromiValue.Type.STRING) {
+                return KuromiValue.number(args[0].asString().length());
+            } else if (args[0].getType() == KuromiValue.Type.ARRAY) {
+                return KuromiValue.number(args[0].asArray().size());
+            }
+            throw new RuntimeException("len() requires string or array.");
+        });
+
+        functions.put("toUpper", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("toUpper(str) expects 1 argument.");
+            return KuromiValue.string(args[0].asString().toUpperCase());
+        });
+
+        functions.put("toLower", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("toLower(str) expects 1 argument.");
+            return KuromiValue.string(args[0].asString().toLowerCase());
+        });
+
+        functions.put("substr", (KuromiValue[] args) -> {
+            if (args.length != 3) throw new RuntimeException("substr(str, start, end) expects 3 arguments.");
+            String str = args[0].asString();
+            int start = (int) args[1].asNumber();
+            int end = (int) args[2].asNumber();
+            return KuromiValue.string(str.substring(start, end));
+        });
+
+        // Array functions
+        functions.put("push", (KuromiValue[] args) -> {
+            if (args.length != 2) throw new RuntimeException("push(array, value) expects 2 arguments.");
+            args[0].asArray().add(args[1]);
+            return KuromiValue.nullValue();
+        });
+
+        functions.put("pop", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("pop(array) expects 1 argument.");
+            List<KuromiValue> arr = args[0].asArray();
+            if (arr.isEmpty()) return KuromiValue.nullValue();
+            return arr.remove(arr.size() - 1);
+        });
+
+        functions.put("createArray", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("createArray(size) expects 1 argument.");
+            int size = (int) args[0].asNumber();
+            List<KuromiValue> arr = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                arr.add(KuromiValue.number(0));
+            }
+            return KuromiValue.array(arr);
+        });
+
+        // Type conversion
+        functions.put("toNumber", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("toNumber(x) expects 1 argument.");
+            try {
+                return KuromiValue.number(Double.parseDouble(args[0].asString()));
+            } catch (NumberFormatException e) {
+                return KuromiValue.number(0);
+            }
+        });
+
+        functions.put("toString", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("toString(x) expects 1 argument.");
+            return KuromiValue.string(args[0].toString());
+        });
+
+        // Utility
+        functions.put("sleep", (KuromiValue[] args) -> {
+            if (args.length != 1) throw new RuntimeException("sleep(ms) expects 1 argument.");
+            try {
+                Thread.sleep((long) args[0].asNumber());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return KuromiValue.nullValue();
+        });
+
+        functions.put("clearScreen", (KuromiValue[] args) -> {
+            if (interpreter.getWindow() != null) {
+                interpreter.getWindow().clear();
+            }
+            return KuromiValue.nullValue();
+        });
+    }
+
+    public boolean hasFunction(String name) {
+        return functions.containsKey(name);
+    }
+
+    public KuromiValue call(String name, KuromiValue[] arguments) {
+        Function func = functions.get(name);
+        if (func == null) throw new RuntimeException("Undefined built-in function: " + name);
+        return func.call(arguments);
+    }
+
+    public void registerKeyListener(Interpreter.GameWindow window) {
+        window.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {}
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                interpreter.setKeyState(KeyEvent.getKeyText(e.getKeyCode()), true);
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                interpreter.setKeyState(KeyEvent.getKeyText(e.getKeyCode()), false);
+            }
+        });
+    }
+}

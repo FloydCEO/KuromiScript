@@ -1,0 +1,28 @@
+// examples/demo.kuromi
+Kuromi <Start>
+Let playerX = 400
+Let playerY = 550
+Let ballX = random(100, 700)
+Let ballY = random(100, 500)
+Let ballDX = random(-5, 5)
+Let ballDY = random(-5, 5)
+ShowText (centered) "KuromiScript HTML Demo - Use LEFT/RIGHT to move!" 400 50
+Repeat 1000 Times:
+    DrawCircle ballX ballY 15 "pink"
+    DrawRectangle playerX playerY 50 20 "purple"
+    If isKeyPressed("LEFT") Then:
+        Let playerX = playerX - 5
+    If isKeyPressed("RIGHT") Then:
+        Let playerX = playerX + 5
+    Let ballX = ballX + ballDX
+    Let ballY = ballY + ballDY
+    If ballY < 15 Then:
+        Let ballDY = -ballDY
+    If ballY > 585 Then:
+        Let ballDY = -ballDY
+    If ballX < 15 Then:
+        Let ballDX = -ballDX
+    If ballX > 785 Then:
+        Let ballDX = -ballDX
+    Wait 16
+Kuromi <Close>

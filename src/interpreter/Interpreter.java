@@ -1,259 +1,368 @@
-// src/interpreter/Interpreter.java
-package interpreter;
+// src/runtime/Interpreter.java
+package runtime;
 
-import javax.sound.sampled.*;
-import javax.swing.*;
+import parser.ASTNode;
+import lexer.Token;
+import lexer.TokenType;
+import java.util.ArrayList;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.*;
-import lexer.Token;
-import parser.ASTNode;
-import runtime.BuiltInFunctions;
+import java.io.File;
+import javax.imageio.ImageIO;
+import javax.swing.*;
 
 public class Interpreter {
-    private final Environment environment = new Environment();
-    private final BuiltInFunctions builtIns;
-    private GameWindow window;
-    private final Map<String, Boolean> keyStates = new HashMap<>();
-    private final Map<String, Point> spritePositions = new HashMap<>();
+    private Environment globals = new Environment();
+    private Environment environment = globals;
+    private GameWindow gameWindow;
+    private Value returnValue;
+    private boolean isReturning = false;
 
-    public Interpreter() {
-        this.builtIns = new BuiltInFunctions(this);
-    }
-
-    public void interpret(List<ASTNode.Stmt> statements) {
-        window = new GameWindow();
-        builtIns.registerKeyListener(window);
-        for (ASTNode.Stmt stmt : statements) {
-            execute(stmt);
+    public void interpret(java.util.List<ASTNode.Stmt> statements) {
+        try {
+            for (ASTNode.Stmt stmt : statements) {
+                execute(stmt);
+                if (isReturning) break;
+            }
+        } catch (Exception e) {
+            System.err.println("Runtime Error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void execute(ASTNode.Stmt stmt) {
-        if (stmt instanceof ASTNode.StartGame) {
-            System.out.println("✨ Kuromi Game Started ✨");
-            window.clear();
-        } else if (stmt instanceof ASTNode.CloseGame) {
-            System.out.println("🛑 Kuromi Game Closing...");
-            window.close();
-        } else if (stmt instanceof ASTNode.LoadImage) {
-            ASTNode.LoadImage load = (ASTNode.LoadImage) stmt;
-            try {
-                BufferedImage img = javax.imageio.ImageIO.read(new File("assets/" + load.path.asString()));
-                environment.define(load.varName.lexeme, KuromiValue.image(img));
-                System.out.println("✓ Loaded image: " + load.varName.lexeme);
-            } catch (IOException e) {
-                System.err.println("[Error] Failed to load image: " + e.getMessage());
+        if (isReturning) return;
+
+        if (stmt instanceof ASTNode.GameStart) {
+            ASTNode.GameStart game = (ASTNode.GameStart) stmt;
+            gameWindow = new GameWindow(game.width, game.height);
+            for (ASTNode.Stmt s : game.body) {
+                execute(s);
+                if (isReturning) break;
             }
-        } else if (stmt instanceof ASTNode.DisplayImage) {
-            ASTNode.DisplayImage display = (ASTNode.DisplayImage) stmt;
-            KuromiValue imgVal = environment.get(display.varName.lexeme);
-            double x = display.x.asNumber();
-            double y = display.y.asNumber();
-            spritePositions.put(display.varName.lexeme, new Point((int) x, (int) y));
-            window.drawImage(imgVal.asImage(), (int) x, (int) y);
-            System.out.println("✓ Displayed " + display.varName.lexeme + " at (" + x + ", " + y + ")");
-        } else if (stmt instanceof ASTNode.ShowText) {
-            ASTNode.ShowText show = (ASTNode.ShowText) stmt;
-            String text = show.text.asString();
-            double x = show.x.asNumber();
-            double y = show.y.asNumber();
-            String alignment = show.alignment != null ? show.alignment.lexeme : "left";
-            window.drawText(text, (int) x, (int) y, alignment);
-            System.out.println("✓ Displayed text at (" + x + ", " + y + ")");
-        } else if (stmt instanceof ASTNode.PlaySound) {
-            ASTNode.PlaySound play = (ASTNode.PlaySound) stmt;
-            String path = "assets/" + play.path.asString();
-            try {
-                AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(path));
-                Clip clip = AudioSystem.getClip();
-                clip.open(audioIn);
-                clip.start();
-                System.out.println("♪ Playing sound: " + play.path.asString());
-            } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
-                System.err.println("[Error] Failed to play sound: " + e.getMessage());
-            }
-        } else if (stmt instanceof ASTNode.DrawRectangle) {
-            ASTNode.DrawRectangle draw = (ASTNode.DrawRectangle) stmt;
-            double x = draw.x.asNumber();
-            double y = draw.y.asNumber();
-            double w = draw.width.asNumber();
-            double h = draw.height.asNumber();
-            Color color = parseColor(draw.color.asString());
-            window.drawRectangle((int) x, (int) y, (int) w, (int) h, color);
-            System.out.println("✓ Drew rectangle at (" + x + ", " + y + ") - " + w + "x" + h + " - " + draw.color.asString());
-        } else if (stmt instanceof ASTNode.DrawCircle) {
-            ASTNode.DrawCircle draw = (ASTNode.DrawCircle) stmt;
-            double x = draw.x.asNumber();
-            double y = draw.y.asNumber();
-            double r = draw.radius.asNumber();
-            Color color = parseColor(draw.color.asString());
-            window.drawCircle((int) x, (int) y, (int) r, color);
-            System.out.println("✓ Drew circle at (" + x + ", " + y + ") - radius " + r + " - " + draw.color.asString());
-        } else if (stmt instanceof ASTNode.DrawLine) {
-            ASTNode.DrawLine draw = (ASTNode.DrawLine) stmt;
-            double x1 = draw.x1.asNumber();
-            double y1 = draw.y1.asNumber();
-            double x2 = draw.x2.asNumber();
-            double y2 = draw.y2.asNumber();
-            Color color = parseColor(draw.color.asString());
-            window.drawLine((int) x1, (int) y1, (int) x2, (int) y2, color);
-            System.out.println("✓ Drew line from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ") - " + draw.color.asString());
-        } else if (stmt instanceof ASTNode.DrawTriangle) {
-            ASTNode.DrawTriangle draw = (ASTNode.DrawTriangle) stmt;
-            double x1 = draw.x1.asNumber();
-            double y1 = draw.y1.asNumber();
-            double x2 = draw.x2.asNumber();
-            double y2 = draw.y2.asNumber();
-            double x3 = draw.x3.asNumber();
-            double y3 = draw.y3.asNumber();
-            Color color = parseColor(draw.color.asString());
-            window.drawTriangle((int) x1, (int) y1, (int) x2, (int) y2, (int) x3, (int) y3, color);
-            System.out.println("✓ Drew triangle - " + draw.color.asString());
-        } else if (stmt instanceof ASTNode.PrintStmt) {
-            ASTNode.PrintStmt printStmt = (ASTNode.PrintStmt) stmt;
-            KuromiValue value = evaluate(printStmt.expression);
-            System.out.println(value.asString());
-        } else if (stmt instanceof ASTNode.VarDecl) {
-            ASTNode.VarDecl varDecl = (ASTNode.VarDecl) stmt;
-            KuromiValue value = evaluate(varDecl.initializer);
-            environment.define(varDecl.name.lexeme, value);
-        } else if (stmt instanceof ASTNode.Repeat) {
-            ASTNode.Repeat repeat = (ASTNode.Repeat) stmt;
-            int count = (int) evaluate(repeat.count).asNumber();
-            for (int i = 0; i < count; i++) {
-                for (ASTNode.Stmt bodyStmt : repeat.body) {
-                    execute(bodyStmt);
-                }
-            }
-        } else if (stmt instanceof ASTNode.Wait) {
-            ASTNode.Wait wait = (ASTNode.Wait) stmt;
-            long ms = (long) evaluate(wait.millis).asNumber();
-            try {
-                Thread.sleep(ms);
-            } catch (InterruptedException e) {
-                System.err.println("[Error] Wait interrupted: " + e.getMessage());
-            }
-        } else if (stmt instanceof ASTNode.Call) {
-            ASTNode.Call call = (ASTNode.Call) stmt;
-            KuromiValue[] args = new KuromiValue[call.arguments.size()];
-            for (int i = 0; i < args.length; i++) {
-                args[i] = evaluate(call.arguments.get(i));
-            }
-            builtIns.call(call.name.lexeme, args);
-            System.out.println("✓ Called function: " + call.name.lexeme);
-        } else if (stmt instanceof ASTNode.IfStmt) {
-            ASTNode.IfStmt ifStmt = (ASTNode.IfStmt) stmt;
-            KuromiValue condition = evaluate(ifStmt.condition);
-            if (condition.asBoolean()) {
-                for (ASTNode.Stmt thenStmt : ifStmt.thenBranch) {
-                    execute(thenStmt);
+        } else if (stmt instanceof ASTNode.Let) {
+            ASTNode.Let let = (ASTNode.Let) stmt;
+            environment.define(let.name.lexeme, evaluate(let.initializer));
+        } else if (stmt instanceof ASTNode.Assignment) {
+            ASTNode.Assignment assign = (ASTNode.Assignment) stmt;
+            environment.set(assign.name.lexeme, evaluate(assign.value));
+        } else if (stmt instanceof ASTNode.Function) {
+            ASTNode.Function func = (ASTNode.Function) stmt;
+            environment.define(func.name.lexeme, Value.function(func));
+        } else if (stmt instanceof ASTNode.Return) {
+            ASTNode.Return ret = (ASTNode.Return) stmt;
+            returnValue = ret.value != null ? evaluate(ret.value) : Value.nil();
+            isReturning = true;
+        } else if (stmt instanceof ASTNode.If) {
+            ASTNode.If ifStmt = (ASTNode.If) stmt;
+            if (evaluate(ifStmt.condition).asBoolean()) {
+                for (ASTNode.Stmt s : ifStmt.thenBranch) {
+                    execute(s);
+                    if (isReturning) break;
                 }
             } else {
-                for (ASTNode.Stmt elseStmt : ifStmt.elseBranch) {
-                    execute(elseStmt);
+                for (ASTNode.Stmt s : ifStmt.elseBranch) {
+                    execute(s);
+                    if (isReturning) break;
                 }
             }
+        } else if (stmt instanceof ASTNode.While) {
+            ASTNode.While whileStmt = (ASTNode.While) stmt;
+            while (evaluate(whileStmt.condition).asBoolean()) {
+                for (ASTNode.Stmt s : whileStmt.body) {
+                    execute(s);
+                    if (isReturning) break;
+                }
+                if (isReturning) break;
+            }
+        } else if (stmt instanceof ASTNode.For) {
+            ASTNode.For forStmt = (ASTNode.For) stmt;
+            Value iterable = evaluate(forStmt.iterable);
+            if (iterable.type == Value.Type.ARRAY) {
+                for (Value element : iterable.asArray()) {
+                    environment.define(forStmt.variable.lexeme, element);
+                    for (ASTNode.Stmt s : forStmt.body) {
+                        execute(s);
+                        if (isReturning) break;
+                    }
+                    if (isReturning) break;
+                }
+            }
+        } else if (stmt instanceof ASTNode.Load) {
+            ASTNode.Load load = (ASTNode.Load) stmt;
+            try {
+                BufferedImage img = ImageIO.read(new File("assets/" + load.path));
+                environment.define(load.name.lexeme, Value.image(img));
+                System.out.println("✓ Loaded: " + load.path);
+            } catch (Exception e) {
+                System.err.println("Failed to load: " + load.path);
+            }
+        } else if (stmt instanceof ASTNode.Draw) {
+            ASTNode.Draw draw = (ASTNode.Draw) stmt;
+            if (gameWindow == null) {
+                System.err.println("Error: Game window not initialized");
+                return;
+            }
+            executeDraw(draw);
+        } else if (stmt instanceof ASTNode.Show) {
+            ASTNode.Show show = (ASTNode.Show) stmt;
+            if (gameWindow != null) {
+                int x = (int) evaluate(show.x).asNumber();
+                int y = (int) evaluate(show.y).asNumber();
+                gameWindow.drawText(show.text, x, y, show.alignment);
+            }
+        } else if (stmt instanceof ASTNode.Play) {
+            System.out.println("♪ Playing: " + ((ASTNode.Play) stmt).path);
+        } else if (stmt instanceof ASTNode.Print) {
+            ASTNode.Print print = (ASTNode.Print) stmt;
+            System.out.println(evaluate(print.expression).asString());
+        } else if (stmt instanceof ASTNode.Block) {
+            ASTNode.Block block = (ASTNode.Block) stmt;
+            for (ASTNode.Stmt s : block.statements) {
+                execute(s);
+                if (isReturning) break;
+            }
+        } else if (stmt instanceof ASTNode.ExpressionStmt) {
+            ASTNode.ExpressionStmt exprStmt = (ASTNode.ExpressionStmt) stmt;
+            evaluate(exprStmt.expression);
         }
     }
 
-    private KuromiValue evaluate(ASTNode.Expr expr) {
+    private void executeDraw(ASTNode.Draw draw) {
+        java.util.List<ASTNode.Expr> args = draw.args;
+        String type = draw.type;
+
+        if ("rect".equals(type) && args.size() >= 4) {
+            int x = (int) evaluate(args.get(0)).asNumber();
+            int y = (int) evaluate(args.get(1)).asNumber();
+            int w = (int) evaluate(args.get(2)).asNumber();
+            int h = (int) evaluate(args.get(3)).asNumber();
+            gameWindow.fillRect(x, y, w, h, draw.color);
+        } else if ("circle".equals(type) && args.size() >= 3) {
+            int x = (int) evaluate(args.get(0)).asNumber();
+            int y = (int) evaluate(args.get(1)).asNumber();
+            int r = (int) evaluate(args.get(2)).asNumber();
+            gameWindow.fillCircle(x, y, r, draw.color);
+        } else if ("image".equals(type) && args.size() >= 3) {
+            Value img = evaluate(args.get(0));
+            int x = (int) evaluate(args.get(1)).asNumber();
+            int y = (int) evaluate(args.get(2)).asNumber();
+            if (img.type == Value.Type.IMAGE) {
+                gameWindow.drawImage(img.asImage(), x, y);
+            }
+        } else if ("line".equals(type) && args.size() >= 4) {
+            int x1 = (int) evaluate(args.get(0)).asNumber();
+            int y1 = (int) evaluate(args.get(1)).asNumber();
+            int x2 = (int) evaluate(args.get(2)).asNumber();
+            int y2 = (int) evaluate(args.get(3)).asNumber();
+            gameWindow.drawLine(x1, y1, x2, y2, draw.color);
+        }
+    }
+
+    private Value evaluate(ASTNode.Expr expr) {
         if (expr instanceof ASTNode.Literal) {
-            ASTNode.Literal lit = (ASTNode.Literal) expr;
-            if (lit.value instanceof Double) return KuromiValue.number((Double) lit.value);
-            if (lit.value instanceof String) return KuromiValue.string((String) lit.value);
-            if (lit.value instanceof Boolean) return KuromiValue.bool((Boolean) lit.value);
+            Object value = ((ASTNode.Literal) expr).value;
+            if (value instanceof Double) return Value.number((Double) value);
+            if (value instanceof String) return Value.string((String) value);
+            if (value instanceof Boolean) return Value.bool((Boolean) value);
+            return Value.nil();
         } else if (expr instanceof ASTNode.Variable) {
-            ASTNode.Variable var = (ASTNode.Variable) expr;
-            return environment.get(var.name.lexeme);
+            return environment.get(((ASTNode.Variable) expr).name.lexeme);
+        } else if (expr instanceof ASTNode.Binary) {
+            return evaluateBinary((ASTNode.Binary) expr);
+        } else if (expr instanceof ASTNode.Unary) {
+            return evaluateUnary((ASTNode.Unary) expr);
+        } else if (expr instanceof ASTNode.Call) {
+            return evaluateCall((ASTNode.Call) expr);
+        } else if (expr instanceof ASTNode.Index) {
+            ASTNode.Index index = (ASTNode.Index) expr;
+            Value arr = evaluate(index.object);
+            int idx = (int) evaluate(index.index).asNumber();
+            return arr.asArray().get(idx);
+        } else if (expr instanceof ASTNode.ArrayLiteral) {
+            ASTNode.ArrayLiteral arrLit = (ASTNode.ArrayLiteral) expr;
+            java.util.List<Value> elements = new ArrayList<>();
+            for (ASTNode.Expr e : arrLit.elements) {
+                elements.add(evaluate(e));
+            }
+            return Value.array(elements);
         }
-        throw new RuntimeException("Unsupported expression.");
+        return Value.nil();
     }
 
-    private Color parseColor(String colorStr) {
-        try {
-            return (Color) Color.class.getField(colorStr.toLowerCase()).get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            return Color.BLACK;
+    private Value evaluateBinary(ASTNode.Binary binary) {
+        Value left = evaluate(binary.left);
+        Value right = evaluate(binary.right);
+        TokenType op = binary.operator.type;
+
+        switch (op) {
+            case PLUS:
+                if (left.type == Value.Type.STRING || right.type == Value.Type.STRING) {
+                    return Value.string(left.asString() + right.asString());
+                }
+                return Value.number(left.asNumber() + right.asNumber());
+            case MINUS:
+                return Value.number(left.asNumber() - right.asNumber());
+            case STAR:
+                return Value.number(left.asNumber() * right.asNumber());
+            case SLASH:
+                double divisor = right.asNumber();
+                if (divisor == 0) throw new RuntimeException("Division by zero");
+                return Value.number(left.asNumber() / divisor);
+            case PERCENT:
+                return Value.number(left.asNumber() % right.asNumber());
+            case LESS:
+                return Value.bool(left.asNumber() < right.asNumber());
+            case LESS_EQUAL:
+                return Value.bool(left.asNumber() <= right.asNumber());
+            case GREATER:
+                return Value.bool(left.asNumber() > right.asNumber());
+            case GREATER_EQUAL:
+                return Value.bool(left.asNumber() >= right.asNumber());
+            case EQUAL_EQUAL:
+                return Value.bool(isEqual(left, right));
+            case BANG_EQUAL:
+                return Value.bool(!isEqual(left, right));
+            case AND:
+                return Value.bool(left.asBoolean() && right.asBoolean());
+            case OR:
+                return Value.bool(left.asBoolean() || right.asBoolean());
+            default:
+                return Value.nil();
         }
     }
 
-    public void setKeyState(String key, boolean pressed) {
-        keyStates.put(key.toUpperCase(), pressed);
+    private Value evaluateUnary(ASTNode.Unary unary) {
+        Value right = evaluate(unary.right);
+        TokenType op = unary.operator.type;
+
+        switch (op) {
+            case MINUS:
+                return Value.number(-right.asNumber());
+            case BANG:
+            case NOT:
+                return Value.bool(!right.asBoolean());
+            default:
+                return Value.nil();
+        }
     }
 
-    public boolean isKeyPressed(String key) {
-        return keyStates.getOrDefault(key.toUpperCase(), false);
+    private Value evaluateCall(ASTNode.Call call) {
+        Value callee = evaluate(call.callee);
+        if (callee.type != Value.Type.FUNCTION) {
+            throw new RuntimeException("Not a function");
+        }
+
+        ASTNode.Function function = (ASTNode.Function) callee.data;
+        Environment funcEnv = new Environment(globals);
+
+        for (int i = 0; i < function.params.size(); i++) {
+            Value arg = i < call.arguments.size() ? evaluate(call.arguments.get(i)) : Value.nil();
+            funcEnv.define(function.params.get(i).lexeme, arg);
+        }
+
+        Environment previous = environment;
+        environment = funcEnv;
+
+        isReturning = false;
+        for (ASTNode.Stmt stmt : function.body) {
+            execute(stmt);
+            if (isReturning) break;
+        }
+
+        Value result = isReturning ? returnValue : Value.nil();
+        returnValue = Value.nil();
+        isReturning = false;
+        environment = previous;
+
+        return result;
     }
 
-    public void moveSprite(String name, double dx, double dy) {
-        KuromiValue img = environment.get(name);
-        Point pos = spritePositions.computeIfAbsent(name, k -> new Point(0, 0));
-        pos.x += (int) dx;
-        pos.y += (int) dy;
-        window.drawImage(img.asImage(), pos.x, pos.y);
+    private boolean isEqual(Value a, Value b) {
+        if (a.type != b.type) return false;
+        if (a.type == Value.Type.NULL) return true;
+        if (a.type == Value.Type.NUMBER) {
+            return Math.abs(a.asNumber() - b.asNumber()) < 0.0001;
+        }
+        if (a.type == Value.Type.STRING) {
+            return a.asString().equals(b.asString());
+        }
+        if (a.type == Value.Type.BOOL) {
+            return a.asBoolean() == b.asBoolean();
+        }
+        return false;
     }
 
-    private class GameWindow extends JFrame {
-        private final DrawingPanel panel;
+    public static class GameWindow extends JFrame {
+        private final Canvas canvas;
 
-        public GameWindow() {
-            setTitle("KuromiCore Game");
-            setSize(800, 600);
+        public GameWindow(int width, int height) {
+            setTitle("KuromiScript Game");
+            setSize(width, height);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            panel = new DrawingPanel();
-            add(panel);
-            setFocusable(true);
-            requestFocusInWindow();
+            setResizable(false);
+            canvas = new Canvas(width, height);
+            add(canvas);
             setVisible(true);
         }
 
-        public void clear() {
-            panel.clear();
+        public void fillRect(int x, int y, int w, int h, String color) {
+            canvas.fillRect(x, y, w, h, parseColor(color));
         }
 
-        public void close() {
-            dispose();
+        public void fillCircle(int x, int y, int r, String color) {
+            canvas.fillCircle(x, y, r, parseColor(color));
         }
 
         public void drawImage(BufferedImage img, int x, int y) {
-            panel.drawImage(img, x, y);
+            canvas.drawImage(img, x, y);
         }
 
         public void drawText(String text, int x, int y, String alignment) {
-            panel.drawText(text, x, y, alignment);
+            canvas.drawText(text, x, y, alignment);
         }
 
-        public void drawRectangle(int x, int y, int w, int h, Color color) {
-            panel.drawRectangle(x, y, w, h, color);
+        public void drawLine(int x1, int y1, int x2, int y2, String color) {
+            canvas.drawLine(x1, y1, x2, y2, parseColor(color));
         }
 
-        public void drawCircle(int x, int y, int r, Color color) {
-            panel.drawCircle(x, y, r, color);
-        }
-
-        public void drawLine(int x1, int y1, int x2, int y2, Color color) {
-            panel.drawLine(x1, y1, x2, y2, color);
-        }
-
-        public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color) {
-            panel.drawTriangle(x1, y1, x2, y2, x3, y3, color);
+        private Color parseColor(String colorName) {
+            return switch (colorName.toLowerCase()) {
+                case "red" -> Color.RED;
+                case "green" -> Color.GREEN;
+                case "blue" -> Color.BLUE;
+                case "white" -> Color.WHITE;
+                case "black" -> Color.BLACK;
+                case "yellow" -> Color.YELLOW;
+                case "cyan" -> Color.CYAN;
+                case "magenta" -> Color.MAGENTA;
+                case "gray" -> Color.GRAY;
+                default -> Color.BLACK;
+            };
         }
     }
 
-    private class DrawingPanel extends JPanel {
-        private BufferedImage buffer = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
-        private Graphics2D g2d = buffer.createGraphics();
+    public static class Canvas extends JPanel {
+        private final BufferedImage buffer;
+        private final Graphics2D g2d;
 
-        public DrawingPanel() {
+        public Canvas(int width, int height) {
+            buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            g2d = buffer.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setColor(Color.BLACK);
-            g2d.fillRect(0, 0, 800, 600);
+            g2d.fillRect(0, 0, width, height);
         }
 
-        public void clear() {
-            g2d.setColor(Color.BLACK);
-            g2d.fillRect(0, 0, 800, 600);
+        public void fillRect(int x, int y, int w, int h, Color color) {
+            g2d.setColor(color);
+            g2d.fillRect(x, y, w, h);
+            repaint();
+        }
+
+        public void fillCircle(int x, int y, int r, Color color) {
+            g2d.setColor(color);
+            g2d.fillOval(x - r, y - r, 2 * r, 2 * r);
             repaint();
         }
 
@@ -264,41 +373,19 @@ public class Interpreter {
 
         public void drawText(String text, int x, int y, String alignment) {
             g2d.setColor(Color.WHITE);
-            g2d.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 16));
-            if ("center".equals(alignment)) {
-                int width = g2d.getFontMetrics().stringWidth(text);
-                x -= width / 2;
-            } else if ("right".equals(alignment)) {
-                int width = g2d.getFontMetrics().stringWidth(text);
-                x -= width;
-            }
+            g2d.setFont(new Font("Arial", Font.PLAIN, 16));
+            FontMetrics fm = g2d.getFontMetrics();
+            int width = fm.stringWidth(text);
+            if ("center".equals(alignment)) x -= width / 2;
+            else if ("right".equals(alignment)) x -= width;
             g2d.drawString(text, x, y);
-            repaint();
-        }
-
-        public void drawRectangle(int x, int y, int w, int h, Color color) {
-            g2d.setColor(color);
-            g2d.fillRect(x, y, w, h);
-            repaint();
-        }
-
-        public void drawCircle(int x, int y, int r, Color color) {
-            g2d.setColor(color);
-            g2d.fillOval(x - r, y - r, 2 * r, 2 * r);
             repaint();
         }
 
         public void drawLine(int x1, int y1, int x2, int y2, Color color) {
             g2d.setColor(color);
+            g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(x1, y1, x2, y2);
-            repaint();
-        }
-
-        public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color) {
-            g2d.setColor(color);
-            int[] xs = {x1, x2, x3};
-            int[] ys = {y1, y2, y3};
-            g2d.fillPolygon(xs, ys, 3);
             repaint();
         }
 
