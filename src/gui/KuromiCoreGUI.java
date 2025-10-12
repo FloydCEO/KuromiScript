@@ -191,7 +191,7 @@ public class KuromiCoreGUI extends JFrame {
         jarBtn.addActionListener(e -> buildJar());
         jarBtn.setToolTipText("Build standalone JAR file");
 
-        JButton clearBtn = new JButton("🗑 Clear Console");
+        JButton clearBtn = new JButton("🗑️ Clear Console");
         clearBtn.addActionListener(e -> consoleOutput.setText(""));
         clearBtn.setToolTipText("Clear console output");
 
@@ -301,7 +301,15 @@ public class KuromiCoreGUI extends JFrame {
                 System.setOut(ps);
                 System.setErr(ps);
 
-                Main.processKuromiScript("temp.kuromi", "run", "output");
+                // Use reflection to call Main.processKuromiScript
+                try {
+                    Class<?> mainClass = Class.forName("Main");
+                    java.lang.reflect.Method method = mainClass.getMethod("processKuromiScript", String.class, String.class, String.class);
+                    method.invoke(null, "temp.kuromi", "run", "output");
+                } catch (ClassNotFoundException e) {
+                    consoleOutput.append("❌ Error: Main class not found\n");
+                    return;
+                }
 
                 SwingUtilities.invokeLater(() -> {
                     updateStatus("Script executed successfully");
@@ -333,7 +341,12 @@ public class KuromiCoreGUI extends JFrame {
             new Thread(() -> {
                 try {
                     consoleOutput.append("\n🌐 Compiling to HTML...\n");
-                    Main.processKuromiScript("temp.kuromi", "web", finalPath.replace(".html", ""));
+
+                    // Use reflection to call Main.processKuromiScript
+                    Class<?> mainClass = Class.forName("Main");
+                    java.lang.reflect.Method method = mainClass.getMethod("processKuromiScript", String.class, String.class, String.class);
+                    method.invoke(null, "temp.kuromi", "web", finalPath.replace(".html", ""));
+
                     SwingUtilities.invokeLater(() -> {
                         consoleOutput.append("✅ HTML created: " + finalPath + "\n");
                         updateStatus("Compiled to HTML successfully");
@@ -367,7 +380,12 @@ public class KuromiCoreGUI extends JFrame {
             new Thread(() -> {
                 try {
                     consoleOutput.append("\n📦 Building JAR...\n");
-                    Main.processKuromiScript("temp.kuromi", "jar", finalPath.replace(".jar", ""));
+
+                    // Use reflection to call Main.processKuromiScript
+                    Class<?> mainClass = Class.forName("Main");
+                    java.lang.reflect.Method method = mainClass.getMethod("processKuromiScript", String.class, String.class, String.class);
+                    method.invoke(null, "temp.kuromi", "jar", finalPath.replace(".jar", ""));
+
                     SwingUtilities.invokeLater(() -> {
                         consoleOutput.append("✅ JAR created: " + finalPath + "\n");
                         updateStatus("JAR built successfully");
@@ -439,9 +457,9 @@ public class KuromiCoreGUI extends JFrame {
         docArea.setEditable(false);
         docArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         docArea.setText(
-                "╔══════════════════════════════════════════════════╗\n" +
-                        "║        KUROMISCRIPT DOCUMENTATION               ║\n" +
-                        "╚══════════════════════════════════════════════════╝\n\n" +
+                "╔════════════════════════════════════════════════════════════╗\n" +
+                        "║        KUROMISCRIPT DOCUMENTATION                       ║\n" +
+                        "╚════════════════════════════════════════════════════════════╝\n\n" +
                         "BASIC STRUCTURE:\n" +
                         "  game WIDTH HEIGHT { ... }  - Start a game\n\n" +
                         "VARIABLES:\n" +

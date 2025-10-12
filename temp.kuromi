@@ -1,0 +1,15 @@
+// Welcome to KuromiCore!
+// Create games and websites with ease!
+
+game 800 600 {
+    // Draw a welcome message
+    show "Welcome to KuromiScript!" 400 300 center
+    
+    // Draw a colorful rectangle
+    draw rect 300 350 200 100 "blue"
+    
+    // Draw a circle
+    draw circle 400 250 50 "red"
+    
+    print "Game started!"
+}

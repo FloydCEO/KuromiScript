@@ -47,7 +47,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo ✓ Java found
 echo.
 
-REM Check if required files exist
+REM Check if required core files exist
 echo 🔍 Checking required files...
 set MISSING_FILES=0
 
@@ -71,16 +71,12 @@ if not exist "src\runtime\Compiler.java" (
     echo ❌ MISSING: src\runtime\Compiler.java
     set MISSING_FILES=1
 )
-if not exist "src\runtime\JarBuilder.java" (
-    echo ❌ MISSING: src\runtime\JarBuilder.java
+if not exist "src\lexer\Lexer.java" (
+    echo ❌ MISSING: src\lexer\Lexer.java
     set MISSING_FILES=1
 )
-if not exist "src\runtime\StandaloneRunner.java" (
-    echo ❌ MISSING: src\runtime\StandaloneRunner.java
-    set MISSING_FILES=1
-)
-if not exist "src\gui\KuromiCoreGUI.java" (
-    echo ❌ MISSING: src\gui\KuromiCoreGUI.java
+if not exist "src\parser\Parser.java" (
+    echo ❌ MISSING: src\parser\Parser.java
     set MISSING_FILES=1
 )
 
@@ -92,28 +88,59 @@ if %MISSING_FILES%==1 (
     exit /b 1
 )
 
-echo ✓ All required files found!
+echo ✓ All required core files found!
 echo.
 
-REM Compile all Java files
+REM Check for optional GUI files
+set HAS_GUI=1
+if not exist "src\gui\KuromiCoreGUI.java" (
+    echo ⚠️  Warning: GUI not found, will build without GUI
+    set HAS_GUI=0
+)
+
+REM Check for optional JAR builder files
+set HAS_JARBUILDER=1
+if not exist "src\runtime\JarBuilder.java" (
+    echo ⚠️  Warning: JarBuilder not found, JAR export disabled
+    set HAS_JARBUILDER=0
+)
+if not exist "src\runtime\StandaloneRunner.java" (
+    echo ⚠️  Warning: StandaloneRunner not found, JAR export disabled
+    set HAS_JARBUILDER=0
+)
+
+echo.
+
+REM Compile core files
 echo ⚙️  Compiling KuromiCore Engine...
 echo.
 
-javac -encoding UTF-8 -d out -sourcepath src ^
-    src\Main.java ^
-    src\lexer\*.java ^
-    src\parser\*.java ^
-    src\interpreter\*.java ^
-    src\runtime\*.java ^
-    src\gui\*.java 2>&1
+REM Compile in stages to handle dependencies
+echo [1/3] Compiling lexer and parser...
+javac -encoding UTF-8 -d out -sourcepath src src\lexer\*.java src\parser\*.java 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ Lexer/Parser compilation failed!
+    pause
+    exit /b 1
+)
+
+echo [2/3] Compiling interpreter and runtime...
+javac -encoding UTF-8 -d out -sourcepath src -cp out src\interpreter\*.java src\runtime\*.java 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ Interpreter/Runtime compilation failed!
+    pause
+    exit /b 1
+)
+
+echo [3/3] Compiling main and GUI...
+if %HAS_GUI%==1 (
+    javac -encoding UTF-8 -d out -sourcepath src -cp out src\gui\*.java src\Main.java 2>&1
+) else (
+    javac -encoding UTF-8 -d out -sourcepath src -cp out src\Main.java 2>&1
+)
 
 if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ╔════════════════════════════════════════╗
-    echo ║       ❌ COMPILATION FAILED!           ║
-    echo ╚════════════════════════════════════════╝
-    echo.
-    echo Please check the error messages above.
+    echo ❌ Main/GUI compilation failed!
     pause
     exit /b 1
 )
@@ -136,7 +163,11 @@ echo. >> out\MANIFEST.MF
 
 REM Build JAR
 cd out
-jar cfm KuromiCore.jar MANIFEST.MF *.class lexer\*.class parser\*.class interpreter\*.class runtime\*.class gui\*.class 2>&1
+if %HAS_GUI%==1 (
+    jar cfm KuromiCore.jar MANIFEST.MF *.class lexer\*.class parser\*.class interpreter\*.class runtime\*.class gui\*.class 2>&1
+) else (
+    jar cfm KuromiCore.jar MANIFEST.MF *.class lexer\*.class parser\*.class interpreter\*.class runtime\*.class 2>&1
+)
 cd ..
 
 if exist "out\KuromiCore.jar" (
@@ -144,6 +175,7 @@ if exist "out\KuromiCore.jar" (
     echo ✅ KuromiCore.jar created successfully!
 ) else (
     echo ⚠️  Warning: Could not create KuromiCore.jar
+    echo You can still use: java -cp out Main
 )
 
 echo.
@@ -153,21 +185,47 @@ echo ╚════════════════════════
 echo.
 echo 📖 Usage Examples:
 echo.
-echo   1. Launch GUI Editor:
-echo      java -jar KuromiCore.jar
-echo.
+
+if %HAS_GUI%==1 (
+    echo   1. Launch GUI Editor:
+    if exist "KuromiCore.jar" (
+        echo      java -jar KuromiCore.jar
+    ) else (
+        echo      java -cp out Main
+    )
+    echo.
+)
+
 echo   2. Run a script directly:
-echo      java -jar KuromiCore.jar examples\test.kuromi
-echo      java -cp out Main examples\test.kuromi
+if exist "KuromiCore.jar" (
+    echo      java -jar KuromiCore.jar examples\test.kuromi
+) else (
+    echo      java -cp out Main examples\test.kuromi
+)
 echo.
+
 echo   3. Compile to HTML website:
-echo      java -jar KuromiCore.jar --web examples\test.kuromi
-echo      java -cp out Main --web examples\test.kuromi
+if exist "KuromiCore.jar" (
+    echo      java -jar KuromiCore.jar --web examples\test.kuromi
+) else (
+    echo      java -cp out Main --web examples\test.kuromi
+)
 echo.
-echo   4. Build standalone JAR game:
-echo      java -jar KuromiCore.jar --jar examples\test.kuromi
-echo      java -cp out Main --jar -o mygame examples\test.kuromi
-echo.
-echo 💡 TIP: Double-click KuromiCore.jar to launch the GUI editor!
+
+if %HAS_JARBUILDER%==1 (
+    echo   4. Build standalone JAR game:
+    if exist "KuromiCore.jar" (
+        echo      java -jar KuromiCore.jar --jar examples\test.kuromi
+    ) else (
+        echo      java -cp out Main --jar examples\test.kuromi
+    )
+    echo.
+)
+
+if %HAS_GUI%==1 (
+    if exist "KuromiCore.jar" (
+        echo 💡 TIP: Double-click KuromiCore.jar to launch the GUI editor!
+    )
+)
 echo.
 pause

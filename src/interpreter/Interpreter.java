@@ -28,6 +28,9 @@ public class Interpreter {
         } catch (Exception e) {
             System.err.println("Runtime Error: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            // Don't close the game window here - let it close independently
+            // This allows the IDE to continue running
         }
     }
 
@@ -296,15 +299,26 @@ public class Interpreter {
 
     public static class GameWindow extends JFrame {
         private final Canvas canvas;
+        private boolean isClosing = false;
 
         public GameWindow(int width, int height) {
             setTitle("KuromiScript Game");
             setSize(width, height);
-            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            // CRITICAL FIX: Don't exit the entire application when window closes
+            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             setResizable(false);
             canvas = new Canvas(width, height);
             add(canvas);
             setVisible(true);
+
+            // Add window listener to handle closing gracefully
+            addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                    isClosing = true;
+                    System.out.println("Game window closed");
+                }
+            });
         }
 
         public void fillRect(int x, int y, int w, int h, String color) {

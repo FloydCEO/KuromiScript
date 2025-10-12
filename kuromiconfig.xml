@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>KuromiCore.jar</jar>
+  <outfile>KuromiCore.exe</outfile>
+  <errTitle>KuromiCore Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>kuromi.ico</icon>
+  <classPath>
+    <mainClass>Main</mainClass>
+  </classPath>
+  <jre>
+    <path></path>
+    <minVersion>17.0.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+    <initialHeapSize>512</initialHeapSize>
+    <maxHeapSize>2048</maxHeapSize>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <productVersion>1.0.0.0</productVersion>
+    <fileDescription>KuromiCore Engine - Visual Programming for Games and Websites</fileDescription>
+    <productName>KuromiCore</productName>
+    <companyName>KuromiScript</companyName>
+    <internalName>KuromiCore</internalName>
+    <originalFilename>KuromiCore.exe</originalFilename>
+    <copyright>2024</copyright>
+  </versionInfo>
+</launch4jConfig>

@@ -1,4 +1,4 @@
-// src/Main.java
+// src/Main.java - NO PACKAGE DECLARATION
 import lexer.Lexer;
 import lexer.Token;
 import parser.Parser;
@@ -30,7 +30,7 @@ public class Main {
 
         if (args[0].equals("--version") || args[0].equals("-v")) {
             System.out.println("╔════════════════════════════════════════╗");
-            System.out.println("║       KuromiCore Engine v1.0.0         ║");
+            System.out.println("║    KuromiCore Engine v1.0.0            ║");
             System.out.println("║  Easy Game & Web Development           ║");
             System.out.println("╚════════════════════════════════════════╝");
             return;
@@ -147,9 +147,9 @@ public class Main {
     }
 
     private static void printHelp() {
-        System.out.println("╔════════════════════════════════════════════════════════════╗");
-        System.out.println("║        KuromiCore - Easy Game & Web Development           ║");
-        System.out.println("╚════════════════════════════════════════════════════════════╝");
+        System.out.println("╔══════════════════════════════════════════════════════════════╗");
+        System.out.println("║        KuromiCore - Easy Game & Web Development              ║");
+        System.out.println("╚══════════════════════════════════════════════════════════════╝");
         System.out.println();
         System.out.println("USAGE:");
         System.out.println("  java -jar KuromiCore.jar [OPTIONS] <file.kuromi>");
@@ -164,59 +164,11 @@ public class Main {
         System.out.println("  -v, --version      Show version info");
         System.out.println();
         System.out.println("EXAMPLES:");
-        System.out.println("  1. Launch GUI Editor:");
-        System.out.println("     java -jar KuromiCore.jar");
-        System.out.println("     → Opens visual editor");
+        System.out.println("  java -jar KuromiCore.jar");
+        System.out.println("  java -jar KuromiCore.jar game.kuromi");
+        System.out.println("  java -jar KuromiCore.jar --web game.kuromi");
+        System.out.println("  java -jar KuromiCore.jar --jar game.kuromi");
         System.out.println();
-        System.out.println("  2. Run a script directly:");
-        System.out.println("     java -jar KuromiCore.jar game.kuromi");
-        System.out.println("     → Runs the game in a window");
-        System.out.println();
-        System.out.println("  3. Compile to HTML website:");
-        System.out.println("     java -jar KuromiCore.jar --web game.kuromi");
-        System.out.println("     → Creates game.html");
-        System.out.println();
-        System.out.println("  4. Build standalone JAR:");
-        System.out.println("     java -jar KuromiCore.jar --jar game.kuromi");
-        System.out.println("     → Creates game.jar");
-        System.out.println();
-        System.out.println("  5. Custom output name:");
-        System.out.println("     java -jar KuromiCore.jar --jar -o mygame game.kuromi");
-        System.out.println("     → Creates mygame.jar");
-        System.out.println();
-        System.out.println("  6. Compile web with custom name:");
-        System.out.println("     java -jar KuromiCore.jar --web -o index game.kuromi");
-        System.out.println("     → Creates index.html");
-        System.out.println();
-        System.out.println("KUROMISCRIPT BASICS:");
-        System.out.println("  game 800 600 { ... }     Start a game");
-        System.out.println("  let x = 10               Declare variable");
-        System.out.println("  draw circle x y r color  Draw a circle");
-        System.out.println("  show \"text\" x y          Display text");
-        System.out.println("  if (condition) { ... }   Conditional");
-        System.out.println("  while (condition) { ... } Loop");
-        System.out.println("  fn name(params) { ... }  Function");
-        System.out.println();
-        System.out.println("AVAILABLE COLORS:");
-        System.out.println("  red, green, blue, yellow, cyan, magenta, white, black, gray");
-        System.out.println();
-        System.out.println("LEARN MORE:");
-        System.out.println("  • Read README.md for full documentation");
-        System.out.println("  • Try examples in examples/ folder");
-        System.out.println("  • Use GUI Help menu for quick reference");
-        System.out.println();
-        System.out.println("LOCALHOST ENGINE:");
-        System.out.println("  KuromiCore runs entirely on your computer - no internet needed!");
-        System.out.println("  Create games and websites with simple, beginner-friendly code.");
-        System.out.println();
-        System.out.println("GETTING STARTED:");
-        System.out.println("  1. Launch the GUI:     java -jar KuromiCore.jar");
-        System.out.println("  2. Try an example:     java -jar KuromiCore.jar examples/hello.kuromi");
-        System.out.println("  3. Read QUICKSTART.md for a 5-minute tutorial");
-        System.out.println();
-        System.out.println("═══════════════════════════════════════════════════════════");
-        System.out.println(" Made with ❤️ for aspiring developers");
-        System.out.println(" Happy coding! 🎮✨");
-        System.out.println("═══════════════════════════════════════════════════════════");
+        System.out.println("Learn more: README.md");
     }
 }
